@@ -104,6 +104,20 @@ Every script is standalone — run them without Claude if you like.
 - **Decide product questions.** An admin screen that controls a section nobody renders is a
   question for the site owner, not a cleanup target.
 
+## Where the rules came from
+
+`docs/` holds the two source documents these skills were distilled from — the accumulated
+lessons and working rules from three production WordPress sites (anonymised as Project A, B
+and C; site names, theme names and local paths replaced, every lesson and number kept).
+
+| Document | What's in it |
+|---|---|
+| [`docs/KINH-NGHIEM-WORDPRESS.md`](docs/KINH-NGHIEM-WORDPRESS.md) | ~120 lessons in 14 groups — architecture, PHP, CSS, UX, plugins, database, cache, SEO, security, deploy, measurement discipline, multi-session work. Each one tied to something that actually went wrong. |
+| [`docs/QUY-DINH-CLAUDE-WORDPRESS.md`](docs/QUY-DINH-CLAUDE-WORDPRESS.md) | The working ruleset: delivery process, four-tier verification, responsive rules, tooling. Overlaps heavily with `wp-delivery`, but adds *why* each rule exists. |
+
+Both are Vietnamese. If you only read one thing in this repo and don't read Vietnamese,
+read the calibration section above — that's the load-bearing idea.
+
 ## License
 
 MIT — see [LICENSE](LICENSE). Not affiliated with WordPress, Automattic, LiteSpeed, or Anthropic.
@@ -177,6 +191,17 @@ anh mô tả một việc khớp — phần `description` trong mỗi `SKILL.md`
   tốc — OPcache làm chi phí đó gần bằng không.
 - **Tự quyết chuyện sản phẩm.** Một màn hình cài đặt điều khiển section không ai hiển thị là
   câu hỏi cho chủ site, không phải mục tiêu để xoá.
+
+## Luật này từ đâu ra
+
+`docs/` chứa hai tài liệu gốc mà ba skill này được cô lại từ đó — bài học và luật làm việc
+tích luỹ từ ba site WordPress sản xuất (ẩn danh thành Dự án A, B, C; tên site, tên theme và
+đường dẫn máy đã thay, mọi bài học và con số giữ nguyên).
+
+| Tài liệu | Có gì |
+|---|---|
+| [`docs/KINH-NGHIEM-WORDPRESS.md`](docs/KINH-NGHIEM-WORDPRESS.md) | ~120 bài học chia 14 nhóm — kiến trúc, PHP, CSS, UX, plugin, database, cache, SEO, bảo mật, deploy, kỷ luật đo lường, làm việc đa phiên. Mỗi mục gắn với một lần đã trả giá thật. |
+| [`docs/QUY-DINH-CLAUDE-WORDPRESS.md`](docs/QUY-DINH-CLAUDE-WORDPRESS.md) | Bộ luật làm việc: quy trình giao hàng, xác minh bốn tầng, luật responsive, công cụ. Trùng nhiều với `wp-delivery`, nhưng thêm phần **vì sao** mỗi luật ra đời. |
 
 ## Giấy phép
 
