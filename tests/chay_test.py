@@ -147,6 +147,26 @@ kiem("không truyền gì thì KHÔNG được báo 'sạch'",
      "KHONG_KIEM_DUOC" in ra and "NOT_TESTED" in ra and ma != 0,
      f"exit={ma} — fail-open, đây là lỗi P0 cũ")
 
+kiem("mốc mới: có --loader mà thiếu --ung-vien-file thì vẫn fail-closed",
+     "KHONG_KIEM_DUOC" in chay("doi_chung_live.py", "--site", "https://vidu.test",
+                               "--loader", os.path.join(FX, "php", "functions.php"))[1])
+
+# Danh sách ứng viên RỖNG phải là KHONG_KIEM_DUOC, không phải "khớp".
+# Lần đầu viết phép kiểm này nó báo "(khớp)" khi dò 0 file — đúng cái fail-open
+# đã sửa ở doi_chung_live, tái phát trong code mới.
+with tempfile.TemporaryDirectory() as tmp:
+    rong = os.path.join(tmp, "rong.txt")
+    io.open(rong, "w", encoding="utf-8").write("# khong co dong nao" + chr(10))
+    ma, ra = chay("doi_chung_live.py", "--site", "https://vidu.test",
+                  "--theme-slug", "t", "--loader", os.path.join(FX, "php", "functions.php"),
+                  "--ung-vien-file", rong)
+    # Bắt đúng CÂU KẾT LUẬN "(khớp — mọi ứng viên…", không bắt chữ "khớp" trần:
+    # nó còn nằm trong câu giải thích, và một khẳng định quá thô thì hỏng vì lý do
+    # sai — vẫn đỏ, nhưng đỏ ở chỗ không phải lỗi.
+    kiem("danh sách ứng viên rỗng KHÔNG được báo là khớp",
+         "KHONG_KIEM_DUOC" in ra and "(khớp — mọi ứng viên" not in ra and ma != 0,
+         f"exit={ma} — fail-open trong chính phép kiểm chống fail-open")
+
 # ───────────────────────────────────────────────────── tổng kết
 print(f"\n{'='*60}")
 print(f"đạt {len(dat)} · hỏng {len(hong)}")

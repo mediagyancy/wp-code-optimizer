@@ -85,6 +85,8 @@ def main():
     ap.add_argument("--xoa-file-file", help="mỗi dòng một đường dẫn file vừa xoá, tính từ gốc theme")
     ap.add_argument("--con-file", default="", help="một file chắc chắn CÒN, làm đối chứng dương")
     ap.add_argument("--nghi", type=float, default=0.4, help="giây nghỉ giữa các request")
+    ap.add_argument("--loader", help="functions.php ở LOCAL, để so danh sách require với file có trên host")
+    ap.add_argument("--ung-vien-file", help="mỗi dòng một đường dẫn inc/*.php cần dò trên host")
     a = ap.parse_args()
 
     urls = list(a.url) + (doc_dong(a.url_file) if a.url_file else [])
@@ -108,6 +110,8 @@ def main():
         chay.append(f"{len(moc)} mốc trên {len(urls)} URL")
     if a.xoa_file_file and a.site:
         chay.append("dò file đã xoá trên host")
+    if a.loader and a.ung_vien_file and a.site:
+        chay.append("so require của loader với file có trên host")
     if not chay:
         print("KHONG_KIEM_DUOC — không có phép kiểm nào chạy được.\n")
         if not urls:
@@ -176,6 +180,58 @@ def main():
             print(f"\n  {len(con)} file VẪN CÒN trên host:")
             for p, m in con:
                 print(f"     {p}  HTTP {m}")
+
+    if a.loader and a.ung_vien_file and a.site:
+        base = a.site.rstrip("/") + "/wp-content/themes/" + a.theme_slug.strip("/") + "/"
+        print()
+        print("=" * 78)
+        print("3. LOADER TRÊN HOST CÓ NẠP ĐỦ FILE CÓ TRÊN HOST KHÔNG")
+        print("=" * 78)
+        print("   Đây là điểm mù của mọi phép quét chỉ đọc cây local: file nằm trên host mà")
+        print("   loader không require thì tính năng TẮT ÂM THẦM — php -l sạch, không một")
+        print("   dòng lỗi, guard function_exists() làm nó suy biến êm. Chuỗi hỏng thật đã")
+        print("   gặp: thiếu một dòng require -> option rỗng -> trang chủ rơi về nội dung demo.")
+        print()
+        src = open(a.loader, encoding="utf-8", errors="replace").read()
+        can = set(re.findall(r"['\"][^'\"]*?(inc/[A-Za-z0-9_-]+\.php)['\"]", src))
+        ung = doc_dong(a.ung_vien_file)
+        # Fail-closed. Danh sách ứng viên rỗng nghĩa là KHÔNG dò gì cả — báo "khớp"
+        # ở đó là đúng cái fail-open đã sửa ở chỗ khác, tái phát tại đây. Lần chạy
+        # đầu tiên của chính phép kiểm này rơi đúng vào bẫy đó: lệnh gom ứng viên
+        # sai nên ra 0 dòng, và nó vẫn in "(khớp)" rồi thoát 0.
+        if not ung:
+            print("   KHONG_KIEM_DUOC — danh sách ứng viên rỗng, không dò file nào.")
+            print("   Đây KHÔNG phải 'khớp'. Xem lệnh gom ứng viên ở cuối mục này.")
+            loi += 1
+            ung = []
+        print(f"   loader require {len(can)} file · dò {len(ung)} ứng viên trên host\n")
+        tat_am_tham, thieu_tren_host = [], []
+        for p in ung:
+            m = ma_http(base + p)
+            if m == 200 and p not in can:
+                tat_am_tham.append(p)
+            elif m == 404 and p in can:
+                thieu_tren_host.append(p)
+            time.sleep(a.nghi)
+        for p in tat_am_tham:
+            print(f"   TẮT ÂM THẦM  {p}  — có trên host (200) mà loader KHÔNG require")
+        for p in thieu_tren_host:
+            print(f"   THIẾU FILE   {p}  — loader require mà host không có (404) -> fatal")
+        n = len(tat_am_tham) + len(thieu_tren_host)
+        loi += n
+        if not n and ung:
+            print("   (khớp — mọi ứng viên có trên host đều được loader require)")
+        print()
+        print("   Danh sách ứng viên nên lấy từ MỌI nhánh git, không chỉ nhánh hiện tại —")
+        print("   ca hỏng điển hình là file phát triển ở nhánh tính năng, đã đẩy lên host,")
+        print("   nhưng chưa merge nên nhánh chính không hề biết nó tồn tại:")
+        print("     for r in $(git for-each-ref --format='%(refname)'); do \\")
+        print("       git ls-tree -r --name-only \"$r\"; done \\")
+        print("       | grep -oE 'inc/[A-Za-z0-9_-]+[.]php' | sort -u > ung-vien.txt")
+        print()
+        print("   Phải LẶP qua từng ref: git ls-tree chỉ nhận MỘT tree-ish, truyền nhiều")
+        print("   ref là nó hiểu thành đường dẫn và trả về rỗng. Lần chạy đầu của chính")
+        print("   phép kiểm này đã dính đúng lỗi đó — và tệ hơn, khi ấy nó vẫn báo 'khớp'.")
 
     print()
     print("=" * 78)

@@ -5,6 +5,42 @@ và định dạng output còn có thể đổi.
 
 ---
 
+## [0.4.0] — 2026-09-05
+
+Thêm một phép kiểm mà cả ba tầng cũ đều mù, sau khi một phiên khác báo về đúng loại
+hỏng đó đang xảy ra trên production.
+
+### Thêm — dò loader trên host
+
+`doi_chung_live.py --loader ... --ung-vien-file ...` so danh sách `require` trong loader
+với các file `inc/*.php` THỰC SỰ có trên host, và báo hai chiều:
+
+- **TẮT ÂM THẦM** — file có trên host (HTTP 200) mà loader không require. Tính năng
+  không chạy, `php -l` sạch, không một dòng lỗi; guard `function_exists()` làm nó suy
+  biến êm. Ca thật đã gặp: thiếu một dòng require → option rỗng → trang chủ rơi về nội
+  dung demo, mà không có gì báo.
+- **THIẾU FILE** — loader require mà host trả 404 → fatal ở mọi lượt truy cập.
+
+Vì sao mọi phép quét chỉ đọc cây local đều mù trước ca thứ nhất: file đó có thể chưa
+từng được commit vào nhánh chính. Nó tồn tại trên host và trong một nhánh tính năng,
+nhưng nhánh chính không hề biết. Vì vậy danh sách ứng viên phải gom từ **mọi ref git**,
+không chỉ nhánh hiện tại — script in sẵn lệnh, kèm cảnh báo `git ls-tree` chỉ nhận MỘT
+tree-ish nên phải lặp qua từng ref (truyền nhiều ref là nó trả về rỗng).
+
+### Sửa — fail-open tái phát trong chính code mới
+
+Lần chạy đầu của phép kiểm trên báo "(khớp)" trong khi nó dò **0 file**, vì lệnh gom ứng
+viên sai. Đúng cái fail-open đã sửa ở v0.2.0, tái phát trong code viết để chống nó. Nay
+danh sách ứng viên rỗng là `KHONG_KIEM_DUOC` và thoát khác 0.
+
+Và một lỗi nữa lộ ra khi viết test: sau khi in `KHONG_KIEM_DUOC`, script **vẫn in tiếp
+"(khớp)"** — hai câu mâu thuẫn trong cùng một output.
+
+Bộ test lên **38 khẳng định**, hai cái mới đều đã hiệu chuẩn ngược: gỡ chốt fail-closed
+ra thì test đỏ đúng chỗ, lắp lại thì xanh.
+
+---
+
 ## [0.3.0] — 2026-09-05
 
 Bổ sung đúng thứ mà v0.2.0 tự khai là khoảng trống lớn nhất: **integration test trên
