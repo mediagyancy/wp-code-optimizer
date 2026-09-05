@@ -66,6 +66,10 @@ field in each `SKILL.md` is what drives that.
 ```bash
 python tests/chay_test.py        # 36 assertions over PHP + CSS fixtures
 python tests/kiem_rieng_tu.py    # no private data leaked into the repo
+
+# integration: downloads WordPress + WooCommerce, runs them, compares
+python tests/integration/dung_wp.py --ra .wp-it
+python tests/integration/test_integration.py --ra .wp-it
 ```
 
 Both self-calibrate: they plant a known-bad case and refuse to report success unless
@@ -138,13 +142,26 @@ Version **0.2.0**. Pre-1.0: CLI flags and output format may still change.
 | Reachability graph (PHP) | **tested** | 13 assertions over a fixture covering seven `require` forms, `get_template_part` with/without slug, JS embedded in PHP |
 | Fail-closed behaviour | **tested** | every tool must fail its own known-bad case before it writes anything |
 | Cross-platform | **tested in CI** | Ubuntu + Windows × Python 3.9 / 3.12 |
-| Behaviour on a running WordPress | **NOT TESTED** | no WP+WooCommerce integration suite exists yet — see below |
+| Behaviour on a running WordPress | **tested in CI** | 13 assertions against a real WordPress + WooCommerce install: what the tools call dead is checked against `get_included_files()`, the rendered HTML and `$wp_filter` reported by WordPress itself |
 
-**The honest gap:** there is no integration test against a live WordPress with real
-plugins. The fixtures prove the parsers read syntax correctly; they do not prove the
-conclusions hold on a site where WooCommerce, page builders and caching plugins are
-generating markup at runtime. That is exactly why the workflow insists on the
-real-production-HTML verification tier — the tooling is not a substitute for it.
+**How the integration tier works:** `tests/integration/` downloads WordPress and
+WooCommerce from wordpress.org, installs them on a SQLite drop-in (no MySQL, no Docker
+required), activates a fixture theme, then asks WordPress itself three questions — which
+theme files were actually loaded, which classes actually rendered, which hooks actually
+registered — and compares those against what the tools concluded statically.
+
+The two directions are deliberately **not** symmetric. *"The tool says dead but WordPress
+loaded it"* is a hard failure: acting on it deletes running code. *"WordPress did not load
+it and the tool missed it"* is only a missed opportunity. Both are checked; only the first
+is fatal.
+
+A second round proves the cascade rule: the tool correctly **keeps** CSS whose class still
+appears in an orphan template file, and only removes it after that file is deleted — which
+is why the workflow says delete files first, then re-scan.
+
+**Still not covered:** themes using PSR-4 autoloading or `spl_autoload_register`, requires
+built inside loops, page builders that generate markup from JSON stored in the database,
+and multisite.
 
 Three P0 defects were found by an external review after v0.1.0 and fixed in v0.2.0.
 All three had slipped through because every calibration case was invented by the same
@@ -212,6 +229,10 @@ anh mô tả một việc khớp — phần `description` trong mỗi `SKILL.md`
 ```bash
 python tests/chay_test.py        # 36 khẳng định trên fixture PHP + CSS
 python tests/kiem_rieng_tu.py    # không có dữ liệu riêng lọt vào repo
+
+# integration: tự tải WordPress + WooCommerce, chạy thật rồi so kết quả
+python tests/integration/dung_wp.py --ra .wp-it
+python tests/integration/test_integration.py --ra .wp-it
 ```
 
 Cả hai tự hiệu chuẩn: gieo một ca hỏng đã biết rồi từ chối báo đạt nếu phép kiểm
@@ -256,13 +277,23 @@ Phiên bản **0.2.0**. Trước 1.0, tham số dòng lệnh và định dạng 
 | Đồ thị khả dụng (PHP) | **đã test** | 13 khẳng định trên fixture có bảy dạng `require`, `get_template_part` có/không hậu tố, JS nhúng trong PHP |
 | Hành vi fail-closed | **đã test** | mọi công cụ phải FAIL đúng ca hỏng của chính nó rồi mới được ghi |
 | Chạy trên hai hệ điều hành | **đã test trong CI** | Ubuntu + Windows × Python 3.9 / 3.12 |
-| Hành vi trên WordPress đang chạy | **CHƯA TEST** | chưa có bộ integration WP+WooCommerce — xem dưới |
+| Hành vi trên WordPress đang chạy | **đã test trong CI** | 13 khẳng định trên một WordPress + WooCommerce cài thật: kết luận của tool được so với `get_included_files()`, HTML render ra và `$wp_filter` do chính WordPress cung cấp |
 
-**Khoảng trống thật:** chưa có integration test trên một WordPress sống với plugin
-thật. Fixture chứng minh bộ phân tích đọc đúng cú pháp; nó **không** chứng minh kết
-luận còn đúng trên một site mà WooCommerce, page builder và plugin cache đang sinh
-markup lúc chạy. Đó chính là lý do quy trình bắt buộc tầng đối chứng bằng HTML thật
-của production — công cụ không thay được tầng đó.
+**Tầng integration chạy thế nào:** `tests/integration/` tải WordPress và WooCommerce từ
+wordpress.org, cài trên drop-in SQLite (không cần MySQL, không cần Docker), kích hoạt một
+theme fixture, rồi hỏi thẳng WordPress ba câu — file theme nào THỰC SỰ được nạp, class nào
+THỰC SỰ render ra, hook nào THỰC SỰ đăng ký — và so với kết luận tĩnh của bộ quét.
+
+Hai chiều **không** đối xứng, và đó là chủ ý. *"Tool báo chết mà WordPress có nạp"* là hỏng
+nặng: tin theo là xoá code đang chạy. *"WordPress không nạp mà tool bỏ sót"* chỉ là tiếc,
+không mất gì. Kiểm cả hai, nhưng chỉ chiều đầu là chí mạng.
+
+Vòng hai chứng minh luật chết theo dây chuyền: tool **giữ** CSS mà tên class còn xuất hiện
+trong một template mồ côi, và chỉ xoá sau khi file đó bị xoá — đúng lý do quy trình bắt xoá
+file trước rồi mới quét lại.
+
+**Vẫn chưa phủ:** theme dùng autoload PSR-4 hay `spl_autoload_register`, require trong vòng
+lặp, page builder sinh markup từ JSON lưu trong database, và multisite.
 
 Ba lỗi P0 do một lượt soát ngoài tìm ra sau v0.1.0, đã sửa ở v0.2.0. Cả ba lọt qua vì
 mọi ca hiệu chuẩn đều do chính người viết code nghĩ ra — tức là chỉ kiểm được những

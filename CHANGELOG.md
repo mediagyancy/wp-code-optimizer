@@ -5,6 +5,55 @@ và định dạng output còn có thể đổi.
 
 ---
 
+## [0.3.0] — 2026-09-05
+
+Bổ sung đúng thứ mà v0.2.0 tự khai là khoảng trống lớn nhất: **integration test trên
+WordPress + WooCommerce thật**. Không còn mục nào trong bảng trạng thái ghi CHƯA TEST.
+
+### Thêm — tầng integration
+
+`tests/integration/` tải WordPress và WooCommerce từ wordpress.org, cài trên drop-in
+**SQLite** (không cần MySQL, không cần Docker — chỉ cần PHP CLI có `pdo_sqlite`; trên
+Windows script tự bật DLL có sẵn), kích hoạt một theme fixture rồi hỏi thẳng WordPress
+ba câu mà phân tích tĩnh chỉ đoán được:
+
+| Hỏi WordPress | Bằng gì |
+|---|---|
+| file theme nào THỰC SỰ được nạp | `get_included_files()` |
+| class nào THỰC SỰ render ra | HTML thật của trang |
+| hook nào THỰC SỰ đăng ký | `$wp_filter` |
+
+**13 khẳng định**, trong đó hai chiều cố ý **không** đối xứng:
+· *"tool báo chết mà WordPress có nạp"* → **hỏng nặng**, tin theo là xoá code đang chạy;
+· *"WordPress không nạp mà tool bỏ sót"* → chỉ là tiếc, không mất gì.
+
+Vòng hai chứng minh luật chết theo dây chuyền bằng chính sự thật nền: tool **giữ** CSS mà
+tên class còn xuất hiện trong một template mồ côi, và chỉ xoá sau khi file đó bị xoá —
+đúng lý do quy trình bắt xoá file trước rồi mới quét lại.
+
+Theme fixture cài sẵn các ca thật: năm dạng `require`, một `require` chỉ chạy khi
+WooCommerce bật, một file có `add_action` mà **không ai nạp**, một template-part mồ côi,
+và một class ghép chuỗi `fxt-bac--<?php echo $n ?>`.
+
+### Thêm — CI
+
+Job `integration` chạy trên Ubuntu với PHP 8.2, có cache bản tải. Job `unit` giữ nguyên
+ma trận Ubuntu + Windows × Python 3.9/3.12.
+
+### Sửa
+
+- Chốt riêng tư báo động giả trên các tên miền RFC 2606/6761 dành riêng cho ví dụ
+  (`.test` `.example` `.invalid` `.localhost`). Chúng không bao giờ là địa chỉ thật, nên
+  báo động ở đó chỉ dạy người ta bỏ qua cảnh báo — và cảnh báo bị bỏ qua vài lần là cảnh
+  báo đã chết. Đã hiệu chuẩn: email thật vẫn bị bắt (5/5 ca).
+
+### Vẫn chưa phủ — nói rõ, không giấu
+
+Theme dùng autoload PSR-4 hay `spl_autoload_register`; `require` dựng trong vòng lặp;
+page builder sinh markup từ JSON lưu trong database; multisite.
+
+---
+
 ## [0.2.0] — 2026-09-05
 
 Bản này sinh ra từ một lượt soát ngoài tìm được **ba lỗi P0** trong chính bộ công cụ

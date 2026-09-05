@@ -1,0 +1,8 @@
+.fxt-song { color: green }
+.fxt-song__b, .fxt-chet__a { color: blue }
+.fxt-song__main:is(.x, .y) { color: green }
+.fxt-chet:is(.foo, .bar) { color: red }
+.fxt-bac--1 { color: #111 }
+.fxt-bac--2 { color: #222 }
+.fxt-chet__part { color: red }
+@media print { .fxt-chet__p { display: none } }

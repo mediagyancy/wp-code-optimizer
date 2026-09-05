@@ -38,7 +38,12 @@ MAU = [
     ("đường dẫn tuyệt đối Windows", re.compile(r"[A-Za-z]:" + re.escape(BS) + r"(?:Users|Claude)" + re.escape(BS))),
     ("đường dẫn tuyệt đối Windows (gạch xuôi)", re.compile(r"[A-Za-z]:/(?:Users|Claude)/")),
     ("thư mục nhà Unix", re.compile(r"/(?:home|Users)/[a-z][a-z0-9_.-]{2,}/")),
+    # Bỏ qua địa chỉ noreply của GitHub và các tên miền RFC 2606/6761 dành riêng
+    # cho ví dụ và thử nghiệm (.test .example .invalid .localhost). Chúng KHÔNG
+    # bao giờ là địa chỉ thật, nên báo động ở đó chỉ dạy người ta bỏ qua cảnh báo —
+    # và một cảnh báo bị bỏ qua vài lần là một cảnh báo đã chết.
     ("địa chỉ email", re.compile(r"[A-Za-z0-9._%+-]+@(?!users\.noreply\.github\.com)"
+                                r"(?![A-Za-z0-9.-]*\.(?:test|example|invalid|localhost)\b)"
                                 r"[A-Za-z0-9.-]+\.[A-Za-z]{2,}")),
     ("khoá/mật khẩu viết thẳng", re.compile(r"(?i)\b(?:password|passwd|api[_-]?key|secret)\s*[=:]\s*['\"][^'\"]{6,}")),
 ]

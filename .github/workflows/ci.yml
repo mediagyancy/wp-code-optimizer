@@ -7,12 +7,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  unit:
     # Chạy trên cả Windows lẫn Linux vì bộ script này đụng đúng chỗ hai hệ khác
-    # nhau: dấu phân cách đường dẫn, và kiểu xuống dòng CRLF/LF. Một trong hai
-    # thứ đó sai là mọi phép so với host thành vô nghĩa — nên nó phải nằm trong CI,
-    # không phải "để ý khi nhớ".
-    name: ${{ matrix.os }} · Python ${{ matrix.python }}
+    # nhau: dấu phân cách đường dẫn, kiểu xuống dòng CRLF/LF, và encoding console.
+    # Cả ba thứ đó đã từng làm hỏng thật, nên chúng phải nằm trong CI chứ không
+    # phải "để ý khi nhớ" — lần chạy CI đầu tiên đỏ đúng vì console Windows cp1252.
+    name: unit · ${{ matrix.os }} · Python ${{ matrix.python }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -22,7 +22,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
@@ -31,15 +30,43 @@ jobs:
         shell: bash
         run: |
           set -e
-          find skills -name '*.py' -print0 | xargs -0 -n1 python -m py_compile
-          python -m py_compile tests/chay_test.py
+          find skills tests -name '*.py' -print0 | xargs -0 -n1 python -m py_compile
 
       - name: Bộ test fixture
         shell: bash
-        env:
-          PYTHONIOENCODING: utf-8
         run: python tests/chay_test.py
 
       - name: Không được lọt dữ liệu riêng vào repo công khai
         shell: bash
         run: python tests/kiem_rieng_tu.py
+
+  integration:
+    # Tầng mà fixture tĩnh KHÔNG thay được: dựng WordPress + WooCommerce thật rồi
+    # hỏi chính nó file nào được nạp và class nào được render, sau đó so với kết
+    # luận của bộ quét. Dùng SQLite drop-in nên không cần MySQL, không cần Docker.
+    name: integration · WordPress + WooCommerce
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_sqlite, sqlite3, mbstring, zip, gd
+          coverage: none
+
+      - name: Cache bản tải WordPress/WooCommerce
+        uses: actions/cache@v4
+        with:
+          path: .wp-it/tai
+          key: wp-it-tai-${{ runner.os }}-v1
+
+      - name: Dựng WordPress + WooCommerce
+        run: python tests/integration/dung_wp.py --ra .wp-it
+
+      - name: So kết luận của bộ quét với sự thật từ WordPress
+        run: python tests/integration/test_integration.py --ra .wp-it
