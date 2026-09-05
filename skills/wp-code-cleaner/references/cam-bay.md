@@ -288,7 +288,7 @@ diff giả làm mọi phép so với host thành vô nghĩa.
 `error_log` trong thư mục theme cho thấy bot gọi thẳng
 `/wp-content/themes/x/home.php`. Không có WordPress nên `get_header()` không tồn tại →
 fatal error → thông báo lỗi in ra **đường dẫn tuyệt đối trên máy chủ**
-(`/home/xxx/public_html/...`).
+(`/home/<tai-khoan-hosting>/public_html/...`).
 
 Nguyên nhân: các template ở gốc theme thiếu `defined( 'ABSPATH' ) || exit;`. Đây không
 phải việc của dọn code, nhưng thấy thì ghi lại. Và `error_log` trong thư mục theme nên

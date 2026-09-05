@@ -16,3 +16,6 @@ skills/wp-delivery/scripts/sites/*.json
 # Rác hệ điều hành
 .DS_Store
 Thumbs.db
+
+# Danh sách tên riêng để chốt riêng tư quét — KHÔNG commit.
+tests/rieng-tu.local.txt

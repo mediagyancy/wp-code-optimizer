@@ -61,6 +61,16 @@ Then in Claude Code: `/wp-delivery`, `/wp-code-cleaner`, `/wp-corewebvital`.
 Claude also picks them up on its own when you describe a matching task — the `description`
 field in each `SKILL.md` is what drives that.
 
+## Tests
+
+```bash
+python tests/chay_test.py        # 36 assertions over PHP + CSS fixtures
+python tests/kiem_rieng_tu.py    # no private data leaked into the repo
+```
+
+Both self-calibrate: they plant a known-bad case and refuse to report success unless
+the check catches it first.
+
 ## Requirements
 
 - **Python 3.8+** — standard library only, nothing to install
@@ -118,6 +128,29 @@ and C; site names, theme names and local paths replaced, every lesson and number
 Both are Vietnamese. If you only read one thing in this repo and don't read Vietnamese,
 read the calibration section above — that's the load-bearing idea.
 
+## Status and confidence
+
+Version **0.2.0**. Pre-1.0: CLI flags and output format may still change.
+
+| Area | Confidence | What backs it |
+|---|---|---|
+| Selector/brace parsing (CSS) | **tested** | 22 assertions over a fixture covering `:is` `:not` `:where` `:has`, `[attr="a,b"]`, `@layer`, nested at-rules, `content:"}{"`, concatenated class names |
+| Reachability graph (PHP) | **tested** | 13 assertions over a fixture covering seven `require` forms, `get_template_part` with/without slug, JS embedded in PHP |
+| Fail-closed behaviour | **tested** | every tool must fail its own known-bad case before it writes anything |
+| Cross-platform | **tested in CI** | Ubuntu + Windows × Python 3.9 / 3.12 |
+| Behaviour on a running WordPress | **NOT TESTED** | no WP+WooCommerce integration suite exists yet — see below |
+
+**The honest gap:** there is no integration test against a live WordPress with real
+plugins. The fixtures prove the parsers read syntax correctly; they do not prove the
+conclusions hold on a site where WooCommerce, page builders and caching plugins are
+generating markup at runtime. That is exactly why the workflow insists on the
+real-production-HTML verification tier — the tooling is not a substitute for it.
+
+Three P0 defects were found by an external review after v0.1.0 and fixed in v0.2.0.
+All three had slipped through because every calibration case was invented by the same
+person who wrote the code — which only tests the failure modes that person already
+imagined. See [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 
 MIT — see [LICENSE](LICENSE). Not affiliated with WordPress, Automattic, LiteSpeed, or Anthropic.
@@ -174,6 +207,16 @@ cp -r wp-code-optimizer/skills/* ~/.claude/skills/
 Rồi gọi `/wp-delivery`, `/wp-code-cleaner`, `/wp-corewebvital`. Claude cũng tự nhận ra khi
 anh mô tả một việc khớp — phần `description` trong mỗi `SKILL.md` lo chuyện đó.
 
+## Chạy test
+
+```bash
+python tests/chay_test.py        # 36 khẳng định trên fixture PHP + CSS
+python tests/kiem_rieng_tu.py    # không có dữ liệu riêng lọt vào repo
+```
+
+Cả hai tự hiệu chuẩn: gieo một ca hỏng đã biết rồi từ chối báo đạt nếu phép kiểm
+không bắt được ca đó trước.
+
 ## Cần gì
 
 - **Python 3.8+** — chỉ dùng thư viện chuẩn, không phải cài thêm gì
@@ -202,6 +245,28 @@ tích luỹ từ ba site WordPress sản xuất (ẩn danh thành Dự án A, B,
 |---|---|
 | [`docs/KINH-NGHIEM-WORDPRESS.md`](docs/KINH-NGHIEM-WORDPRESS.md) | ~120 bài học chia 14 nhóm — kiến trúc, PHP, CSS, UX, plugin, database, cache, SEO, bảo mật, deploy, kỷ luật đo lường, làm việc đa phiên. Mỗi mục gắn với một lần đã trả giá thật. |
 | [`docs/QUY-DINH-CLAUDE-WORDPRESS.md`](docs/QUY-DINH-CLAUDE-WORDPRESS.md) | Bộ luật làm việc: quy trình giao hàng, xác minh bốn tầng, luật responsive, công cụ. Trùng nhiều với `wp-delivery`, nhưng thêm phần **vì sao** mỗi luật ra đời. |
+
+## Trạng thái và mức chắc chắn
+
+Phiên bản **0.2.0**. Trước 1.0, tham số dòng lệnh và định dạng output còn có thể đổi.
+
+| Phần | Mức chắc chắn | Dựa vào đâu |
+|---|---|---|
+| Đọc selector và ngoặc (CSS) | **đã test** | 22 khẳng định trên fixture có `:is` `:not` `:where` `:has`, `[attr="a,b"]`, `@layer`, at-rule lồng nhau, `content:"}{"`, tên ghép chuỗi |
+| Đồ thị khả dụng (PHP) | **đã test** | 13 khẳng định trên fixture có bảy dạng `require`, `get_template_part` có/không hậu tố, JS nhúng trong PHP |
+| Hành vi fail-closed | **đã test** | mọi công cụ phải FAIL đúng ca hỏng của chính nó rồi mới được ghi |
+| Chạy trên hai hệ điều hành | **đã test trong CI** | Ubuntu + Windows × Python 3.9 / 3.12 |
+| Hành vi trên WordPress đang chạy | **CHƯA TEST** | chưa có bộ integration WP+WooCommerce — xem dưới |
+
+**Khoảng trống thật:** chưa có integration test trên một WordPress sống với plugin
+thật. Fixture chứng minh bộ phân tích đọc đúng cú pháp; nó **không** chứng minh kết
+luận còn đúng trên một site mà WooCommerce, page builder và plugin cache đang sinh
+markup lúc chạy. Đó chính là lý do quy trình bắt buộc tầng đối chứng bằng HTML thật
+của production — công cụ không thay được tầng đó.
+
+Ba lỗi P0 do một lượt soát ngoài tìm ra sau v0.1.0, đã sửa ở v0.2.0. Cả ba lọt qua vì
+mọi ca hiệu chuẩn đều do chính người viết code nghĩ ra — tức là chỉ kiểm được những
+cách hỏng mà người đó đã tưởng tượng ra. Chi tiết ở [CHANGELOG.md](CHANGELOG.md).
 
 ## Giấy phép
 

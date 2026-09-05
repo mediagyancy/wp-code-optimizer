@@ -1,0 +1,62 @@
+/* Fixture CSS: các cú pháp hiện đại mà bộ gỡ PHẢI không cắt nát.
+   Quy ước: class .fx-song có trong markup, .fx-chet thì không. */
+
+/* 1. dấu phẩy TRONG :is() — bản đầu cắt ở đây và ghi ra CSS hỏng */
+.fx-chet:is(.foo, .bar) { color: red }
+
+/* 2. :not() nhiều tham số */
+.fx-chet:not(.a, .b) { color: red }
+
+/* 3. :where() */
+.fx-chet:where(.a, .b) .con { color: red }
+
+/* 4. :has() */
+.fx-chet:has(> .a, + .b) { color: red }
+
+/* 5. dấu phẩy trong selector thuộc tính */
+.fx-song[data-list="a,b,c"] { color: green }
+
+/* 6. nth-child dạng of S */
+.fx-song:nth-child(2n of .fx-song) { color: green }
+
+/* 7. danh sách selector thật — phải tách được, bỏ đúng vế chết */
+.fx-chet__a,
+.fx-song__b,
+.fx-chet__c { color: blue }
+
+/* 8. dấu ngoặc nhọn nằm trong chuỗi — đếm ngoặc phải bỏ qua */
+.fx-song::after { content: "}{" }
+
+/* 9. dấu ngoặc nhọn trong comment */
+/* } { */
+.fx-song--x { color: green }
+
+/* 10. @media lồng @supports */
+@media (max-width: 600px) {
+	@supports (display: grid) {
+		.fx-song { display: grid }
+		.fx-chet__m { display: none }
+	}
+}
+
+/* 11. @layer */
+@layer base {
+	.fx-chet__l { color: red }
+	.fx-song__l { color: green }
+}
+
+/* 12. @media chỉ chứa rule chết -> phải bỏ cả khối, không để lại vỏ rỗng */
+@media print {
+	.fx-chet__p { display: none }
+}
+
+/* 13. tên biến thể ghép chuỗi: markup chỉ có 'fx-bac--', số do PHP nối vào.
+   Bỏ nhầm nhóm này là mất nhãn đang hiện trên trang. */
+.fx-bac--1 { color: #111 }
+.fx-bac--2 { color: #222 }
+
+/* 14. escape trong tên class */
+.fx-song\/2 { color: green }
+
+/* 15. @font-face không có class — không được đụng tới */
+@font-face { font-family: "FX"; src: url(fx.woff2) }

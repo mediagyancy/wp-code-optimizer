@@ -1,0 +1,2 @@
+<?php
+// KHONG ai goi

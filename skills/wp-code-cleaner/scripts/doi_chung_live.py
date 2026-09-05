@@ -90,6 +90,28 @@ def main():
         moc |= {"." + c for c in mat}
         print(f"suy ra từ hai bản CSS: {len(mat)} class đã biến mất\n")
 
+    # Fail-closed. Bản trước không có khối này: chạy trần không tham số nào thì nó
+    # in "TỔNG SỐ CA NGUY: 0 / Sạch ở tầng này" và thoát 0 — tức là "chưa kiểm gì"
+    # trông y hệt "đã kiểm và sạch". Một phép kiểm nói dối theo hướng an toàn giả
+    # còn tệ hơn không có phép kiểm, vì nó tạo ra niềm tin.
+    chay = []
+    if urls and moc:
+        chay.append(f"{len(moc)} mốc trên {len(urls)} URL")
+    if a.xoa_file_file and a.site:
+        chay.append("dò file đã xoá trên host")
+    if not chay:
+        print("KHONG_KIEM_DUOC — không có phép kiểm nào chạy được.\n")
+        if not urls:
+            print("  · thiếu URL: truyền --url hoặc --url-file")
+        if not moc:
+            print("  · thiếu mốc cần vắng mặt: truyền --xoa-class-file / --xoa-moc-file,")
+            print("    hoặc --css-cu và --css-moi để tự suy ra danh sách class đã xoá")
+        if not (a.xoa_file_file and a.site):
+            print("  · muốn dò file đã xoá thì cần cả --site lẫn --xoa-file-file")
+        print("\nĐây KHÔNG phải 'sạch'. Không kiểm gì thì trạng thái là NOT_TESTED.")
+        return 2
+    print("sẽ chạy: " + " · ".join(chay) + "\n")
+
     loi = 0
 
     if urls and moc:

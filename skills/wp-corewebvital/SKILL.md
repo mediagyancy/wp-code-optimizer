@@ -4,7 +4,7 @@ preamble-tier: 3
 version: 2.0.0
 description: |
   Core Web Vitals optimization for WordPress sites on LiteSpeed server with LiteSpeed Cache plugin.
-  SAFE-FIRST philosophy: chỉ áp dụng setting an toàn 100%, KHÔNG dùng dịch vụ bên thứ 3 (QUIC.cloud, Cloudflare CDN, online image opt).
+  Ưu tiên an toàn: chỉ dùng setting rollback được và KHÔNG phụ thuộc dịch vụ bên thứ ba (QUIC.cloud, Cloudflare CDN, online image opt).
   7-phase workflow: audit → LiteSpeed safe preset → plugin dequeue → image WebP self-host → CSS/JS optimize → font self-host → verify.
   Based on real sprint results: trên một site sản xuất thật: -31% page weight, FCP -56%, toàn bộ CWV đạt.
   Use when asked to "optimize core web vitals", "tối ưu CWV", "speed up WordPress", "tune LiteSpeed", "fix PageSpeed score".
@@ -35,9 +35,26 @@ allowed-tools:
 
 > **Proven results:** một sprint thật trên site sản xuất — 2177KB → 1506KB (-31%), FCP 926ms → 410ms (-56%), all CrUX field metrics PASS.
 
-> **Triết lý SAFE-FIRST:** Mọi optimization phải có thể rollback dễ dàng. KHÔNG bao giờ enable setting có thể break inline JS, FOUC, CLS regression, hay cache poisoning. KHÔNG dùng dịch vụ bên thứ 3 (QUIC.cloud, Cloudflare CDN, online CCSS/UCSS service).
+> **Ưu tiên an toàn:** Mọi optimization phải rollback được. KHÔNG bao giờ enable setting có thể break inline JS, FOUC, CLS regression, hay cache poisoning. KHÔNG dùng dịch vụ bên thứ 3 (QUIC.cloud, Cloudflare CDN, online CCSS/UCSS service).
 
 ---
+
+
+> ## Mức chắc chắn — đọc trước khi làm theo bất cứ bước nào
+>
+> Không có setting nào "an toàn 100%". Câu đó từng nằm ở đầu tài liệu này và nó sai:
+> an toàn hay không phụ thuộc plugin đang cài, theme, phiên bản LiteSpeed và cấu hình
+> hosting của TỪNG site. Nên mỗi bước dưới đây mang một nhãn:
+>
+> | Nhãn | Nghĩa | Phải làm gì |
+> |---|---|---|
+> | `AN-TOAN-CAO` | Chưa gặp ca hỏng nào trên các site đã thử; rollback bằng cách tắt lại setting | kiểm 5 loại trang sau khi bật |
+> | `CAN-KIEM` | Đúng với cấu hình thường gặp, nhưng có cấu hình làm nó hỏng | đọc phần "hỏng khi nào" ngay dưới bước đó, rồi tự kiểm |
+> | `RUI-RO` | Có thể làm hỏng chức năng đang chạy | chỉ làm khi hiểu rõ, và kiểm bằng thao tác thật |
+>
+> Không nhãn nào là "khỏi kiểm". Sau mỗi phase, mở đủ 5 loại trang và **đặt thử một
+> đơn** nếu là site bán hàng.
+
 
 ## CRITICAL RULES
 
@@ -108,7 +125,7 @@ Build ROI table → present top 3 cho user → confirm scope.
 
 ---
 
-## PHASE 1 — LiteSpeed Cache: Apply SAFE BASIC Preset
+## PHASE 1 — LiteSpeed Cache: preset khởi điểm (KHÔNG phải preset an toàn tuyệt đối)
 
 **Target metric:** TTFB, FCP, cache hit rate
 **Impact:** HIGH — server response time là foundation
@@ -119,7 +136,7 @@ Build ROI table → present top 3 cho user → confirm scope.
 ✅ **Use the prepared safe preset:** `skills/wp-corewebvital/presets/lscwp-safe-basic.data`
 
 ```
-AskUserQuestion: "Em sẽ apply preset SAFE BASIC. Có 3 cách:
+AskUserQuestion: "Em sẽ apply preset khởi điểm. Có 3 cách:
 A) Em copy file vào Downloads cho anh import qua WP Admin → LiteSpeed Cache → Toolbox → Import
 B) Anh có SSH access — em dùng wp-cli để apply
 C) Em hướng dẫn anh chỉnh manual từng setting"
@@ -127,7 +144,7 @@ C) Em hướng dẫn anh chỉnh manual từng setting"
 
 Sau khi apply: **Toolbox → Purge All**.
 
-### 1.2 — Settings preset BẬT (an toàn 100%)
+### 1.2 — Settings preset BẬT (mỗi mục có nhãn mức chắc chắn)
 
 | Group | Settings | Why safe |
 |-------|----------|----------|
@@ -219,6 +236,12 @@ add_action('wp_enqueue_scripts', function() {
         wp_dequeue_style('wc-blocks-style');
         wp_dequeue_script('wc-add-to-cart');
         wp_dequeue_script('wc-cart-fragments');
+        /* [CAN-KIEM] Hỏng khi nào: fragments là thứ cập nhật mini-cart bằng AJAX.
+           Gỡ nó ngoài các trang Woo chuẩn sẽ làm mini-cart / widget giỏ hàng /
+           shortcode [woocommerce_cart] trên TRANG CHỦ hoặc trang tĩnh ngừng cập
+           nhật số lượng sau khi thêm hàng. Trước khi bật: tìm mọi nơi có mini-cart
+           ngoài trang Woo, và thêm chúng vào điều kiện loại trừ. Kiểm bằng cách
+           thêm một món rồi xem số trên biểu tượng giỏ có đổi không. */
     }
     
     // Plugin chỉ load khi có shortcode
@@ -415,6 +438,11 @@ add_action('wp_enqueue_scripts', function() {
 ```php
 add_action('wp_enqueue_scripts', function() {
     // Remove Gutenberg block CSS nếu là classic theme
+    /* [RUI-RO] Hỏng khi nào: classic theme KHÔNG có nghĩa là nội dung không có
+       block. Bài viết soạn bằng Gutenberg vẫn sinh ra markup block (columns,
+       gallery, buttons, group) và mất wp-block-library là mất style của chúng —
+       lỗi hiện ở GIỮA BÀI, không hiện ở trang chủ, nên rất dễ không ai thấy.
+       Chỉ bật khi đã kiểm: mở vài bài viết dài nhất và một trang có gallery. */
     wp_dequeue_style('wp-block-library');
     wp_dequeue_style('wp-block-library-theme');
     wp_dequeue_style('global-styles');
@@ -560,7 +588,18 @@ grep -oE '/wp-content/plugins/[^/"]+' /tmp/cwv-final.html | sort -u | wc -l
 - [ ] Language switcher — gtranslate works
 - [ ] Admin panel — WP admin loads normally
 
-### 7.3 — Field data monitoring (24-48h sau deploy)
+### 7.3 — Theo dõi field data (KHÔNG phải 24–48 giờ)
+
+> **Đừng kết luận field data sau 24–48 giờ.** CrUX và Search Console báo cáo theo
+> **cửa sổ cuốn 28 ngày**, nên sau hai ngày thì thay đổi của bạn mới chiếm khoảng
+> 2/28 dữ liệu — con số nhìn thấy gần như vẫn là con số của bản cũ. Đọc sớm rồi kết
+> luận là cách tự lừa mình theo cả hai hướng: tưởng đã cải thiện, hoặc tưởng đã hỏng.
+>
+> Mốc đọc hợp lý:
+> · **ngay sau deploy** — kiểm chức năng, không phải kiểm tốc độ
+> · **lab (PSI/Lighthouse)** — thấy được ngay, nhưng dao động ±20 điểm mỗi lần chạy
+> · **field data** — nhìn xu hướng từ khoảng ngày thứ 7, và chỉ kết luận sau 28 ngày
+
 
 ```
 1. https://pagespeed.web.dev/analysis?url=<URL>
@@ -663,7 +702,11 @@ grep -oE '/wp-content/plugins/[^/"]+' /tmp/cwv-final.html | sort -u | wc -l
 
 ## RELATED FILES
 
-- 📄 Preset SAFE BASIC: `skills/wp-corewebvital/presets/lscwp-safe-basic.data`
+- 📄 Preset khởi điểm: `skills/wp-corewebvital/presets/lscwp-safe-basic.data`
+  **Preset này xuất từ LiteSpeed Cache 7.8.1.** Bản LSCWP khác có thể đổi mặc định của
+  một số khoá — đáng chú ý là `cache-page_login` (cache trang đăng nhập), trong preset
+  này đang BẬT. Sau khi import, mở lại từng nhóm setting đối chiếu với tài liệu của
+  đúng phiên bản đang cài, rồi test site. Import xong coi như đã an toàn là sai.
 - 📖 Preset README: `skills/wp-corewebvital/presets/README.md`
 - 🗒️ Dự án B sprint reference: `(báo cáo nội bộ, không kèm trong repo)`
 - 🗒️ Dự án B landscape: `(báo cáo nội bộ, không kèm trong repo)`
@@ -676,5 +719,5 @@ grep -oE '/wp-content/plugins/[^/"]+' /tmp/cwv-final.html | sort -u | wc -l
 Khi tất cả phases done:
 1. Save final PSI data vào `.gstack/benchmark-reports/`
 2. Update landscape doc (`.gstack/audit/`) với current state
-3. Tạo verification checklist cho user monitor field data 24-48h
+3. Tạo verification checklist; nói rõ mốc field data là 28 ngày, không phải 24–48h
 4. Đợi CrUX data confirm trước khi declare victory
