@@ -27,6 +27,15 @@ import subprocess
 import sys
 import tempfile
 
+# Windows console mặc định cp1252, không in được tiếng Việt và sẽ ném
+# UnicodeEncodeError giữa chừng — script chết trước cả khi kịp báo kết quả.
+# Ép UTF-8 ngay tại script để chạy tay trên Windows cũng không cần đặt biến
+# môi trường. CI đã bắt đúng ca này.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+
 
 def doc_nhi_phan(p):
     raw = open(p, "rb").read()
