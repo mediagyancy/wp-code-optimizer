@@ -1,0 +1,21 @@
+{
+  "site": "https://vidu.com",
+  "theme_version_in_html": true,
+  "checks": [
+    {
+      "url": "/",
+      "must_contain": ["ten-lop-cua-theme"],
+      "must_not_contain": ["Fatal error", "Warning:"]
+    },
+    {
+      "url": "/cua-hang/",
+      "must_contain": ["add-to-cart"],
+      "must_not_contain": ["Fatal error"]
+    },
+    {
+      "url": "/gio-hang/",
+      "must_contain": ["cart"],
+      "must_not_contain": ["Fatal error"]
+    }
+  ]
+}

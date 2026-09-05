@@ -1,0 +1,6 @@
+# Chốt xuống dòng về LF trong repo. Thiếu file này thì mỗi máy commit một kiểu EOL,
+# và một sửa đổi 2 dòng hiện ra thành 65 dòng thay đổi — mọi phép so trở nên vô nghĩa.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.woff2 binary

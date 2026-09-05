@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Bản lưu do wp_safe_write sinh ra trước mỗi lần ghi — dựng lại được
+_backup/
+*.bak
+*.orig
+*.tmp
+
+# Cấu hình site THẬT: đừng commit tên miền và mốc kiểm của khách.
+# Chép sites/vidu.json ra rồi sửa, đặt tên gì cũng được.
+skills/wp-delivery/scripts/sites/*.json
+!skills/wp-delivery/scripts/sites/vidu.json
+
+# Rác hệ điều hành
+.DS_Store
+Thumbs.db
