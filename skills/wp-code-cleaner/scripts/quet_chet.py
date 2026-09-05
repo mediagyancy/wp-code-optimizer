@@ -57,8 +57,19 @@ def khong_dau(x):
     return x
 
 
+def bo_script(s):
+    """Bỏ nội dung mọi khối <script> trước khi tìm hàm PHP.
+
+    File PHP của theme rất hay nhúng JavaScript thẳng vào. Không bỏ ra thì mọi
+    `function ten(){...}` của JS bị đếm như hàm PHP, và vì không PHP nào gọi chúng
+    nên chúng hiện ra trong danh sách "hàm không ai gọi" — báo động giả, và tệ hơn
+    là dụ người ta đi xoá một hàm JS đang chạy.
+    """
+    return re.sub(r"<script\b[^>]*>.*?</script>", " ", s, flags=re.S | re.I)
+
+
 def tim_ham(s):
-    return re.findall(r"^\s*function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", s, re.M)
+    return re.findall(r"^\s*function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", bo_script(s), re.M)
 
 
 def co_hook(s):
