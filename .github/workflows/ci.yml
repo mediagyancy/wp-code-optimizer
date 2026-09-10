@@ -40,6 +40,16 @@ jobs:
         shell: bash
         run: python tests/kiem_rieng_tu.py
 
+      # wp-preview-builder: ghim CÔNG THỨC đo tràn ngang, không cần trình duyệt.
+      #
+      # Ranh giới phải nói rõ: bước này KHÔNG chứng minh probe chạy đúng trong một trang
+      # thật. Nó chứng minh công thức là công thức đúng, và chặn việc lặng lẽ quay về
+      # `innerWidth` — thứ đã từng trả về 0 trên một trang tràn 296px. CI không có trình
+      # duyệt nên phần quyết định được tách sang Python và ghim bằng số của ca hỏng thật.
+      - name: wp-preview-builder — công thức tràn ngang đã hiệu chuẩn
+        shell: bash
+        run: python tests/test_preview.py
+
   integration:
     # Tầng mà fixture tĩnh KHÔNG thay được: dựng WordPress + WooCommerce thật rồi
     # hỏi chính nó file nào được nạp và class nào được render, sau đó so với kết

@@ -557,10 +557,29 @@ giữa ca bếp, tài xế tra gara bên đường — họ dùng máy gập, m�
 ## Phép đo: chỉ một con số quyết định
 
 ```
-tràn ngang = max(documentElement.scrollWidth, body.scrollWidth) − innerWidth
+tràn ngang = max(documentElement.scrollWidth, body.scrollWidth) − documentElement.clientWidth
 ```
 
 Lớn hơn 0 mới là lỗi. **"Nhìn ổn" không phải bằng chứng, và ảnh chụp cũng không.**
+
+> **Sửa 10/09/2026 — bản trước của chính dòng này lấy `window.innerWidth` làm số bị trừ,
+> và đó là một phép đo SAI đã được chứng minh bằng số.** Trong giả lập mobile,
+> `window.innerWidth` phình theo nội dung: đặt viewport 344px mà nội dung rộng 640px thì
+> nó báo 640, đúng bằng bề rộng cuộn — nên hiệu triệt tiêu và phép đo trả về **0** trên
+> một trang tràn **296px**. Số 0 ấy trông y hệt số 0 của một trang sạch. Xảy ra trên cả
+> Browser pane lẫn `chrome-devtools` MCP, nên không chữa được bằng cách đổi công cụ.
+>
+> **Cấm dùng `window.innerWidth` để tính** trong mọi script đo layout; vẫn được báo cáo
+> giá trị của nó để đối chiếu. Ràng buộc này nay có khẳng định chạy trong CI —
+> `skills/wp-preview-builder/scripts/quyet_dinh_tran.py` giữ cả hai công thức và bắt buộc
+> phải tồn tại một ca mà chúng cho kết quả khác nhau. Quay về `innerWidth` sẽ làm đỏ một
+> test có tên.
+
+Hai biên **khác nhau** có chủ ý: ở mức **trang** không có biên (tràn 1px vẫn là tràn); ở
+mức **phần tử** có biên 1px, vì `getBoundingClientRect()` trả số thực và không có biên
+thì mọi trang đều có thủ phạm ảo ở đúng mép phải. Hệ quả phải nói ra: một trang có thể
+báo tràn 0.4px ở mức trang mà **không liệt được phần tử nào** — đó là làm tròn, không
+phải bỏ sót.
 
 ### Bốn nguồn báo động giả — phải lọc, nếu không phép đo mất giá trị
 
@@ -623,7 +642,7 @@ không có dữ liệu thật, không có plugin. Chỉ đo trên trang chạy t
 
 ```
 1. mở trang bằng Browser pane
-2. resize_window về từng bề rộng: 344 → 375 → 768 → 1280
+2. resize_window về từng bề rộng: 344 → 375 → 768 → 1280 → 1440
 3. dán scripts/probe.js vào javascript_tool
 4. đọc TRAN_NGANG trước, rồi mới xét thu_pham_that
 5. xong thì resize_window preset "desktop" để trả lại

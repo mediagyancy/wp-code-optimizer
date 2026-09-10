@@ -109,8 +109,12 @@ reusable block (`wp/v2/blocks`).
 - **CSS phải suy biến an toàn**: nếu `checkout.css` không tải được thì trang chỉ nên "xếp dọc hơi xấu",
   không vỡ nát — giới hạn `display:contents` bằng selector có điều kiện.
 - **Class đang ăn nhờ style thiết kế cũ là mìn chờ** — ghi lại, đừng đợi nó tự nổ.
-- **Kiểm bằng số**: `scrollWidth == innerWidth` ở 375px (không tràn ngang), tương phản đo được,
-  đếm ngoặc mở/đóng của file CSS (194/194).
+- **Kiểm bằng số**: `max(scrollWidth) − documentElement.clientWidth == 0` ở **cả năm** bề rộng
+  344/375/768/1280/1440, tương phản đo được, đếm ngoặc mở/đóng của file CSS (194/194).
+  *(Bản trước của dòng này so bề rộng cuộn với `window.innerWidth` ở 375px — sai hai lần:
+  `innerWidth` phình theo nội dung nên tiêu chí đó trả "sạch" trên một trang tràn 296px, và
+  một bề rộng duy nhất thì không phải phép kiểm responsive. Chi tiết kèm số đo ở
+  `skills/wp-preview-builder/references/cam-bay-preview.md` mục 1.)*
 - **CSS inline trong PHP vẫn bị cache** — không purge thì thấy màu cũ và tưởng code hỏng.
 - **File CSS lệch byte chưa chắc hỏng**: local CRLF vs host LF — `checkout.css` lệch đúng 1.049 byte
   = đúng 1.049 dòng.
