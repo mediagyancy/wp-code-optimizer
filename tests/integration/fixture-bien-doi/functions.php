@@ -17,6 +17,7 @@ define( 'FXB_DUONG_DAN', get_template_directory() );
 
 require_once FXB_DUONG_DAN . '/inc/hook-a.php';
 require_once FXB_DUONG_DAN . '/inc/hook-b.php';
+require_once FXB_DUONG_DAN . '/inc/hook-dong.php';
 require_once FXB_DUONG_DAN . '/inc/uu-tien.php';
 require_once FXB_DUONG_DAN . '/inc/tham-so.php';
 require_once FXB_DUONG_DAN . '/inc/loc-dau-vao.php';

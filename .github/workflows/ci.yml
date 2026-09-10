@@ -83,3 +83,11 @@ jobs:
       # phát hiện ở CI, và là tin rất xấu khi phát hiện trên site của khách.
       - name: Tầng 5 — hiệu chuẩn thước tương đương hành vi (6 ca tiêm)
         run: python tests/integration/tang5.py --ra .wp-it
+
+      # Cổng graph — đối chứng đồ thị TĨNH với ADN runtime, hai chiều.
+      #
+      # Phép kiểm mạnh nhất trong bước này không phải "cổng báo 2 vùng mù" mà là CA ĐỐI
+      # CHỨNG NGƯỢC: gỡ đúng file sinh ra hai cạnh động rồi đòi cổng về 0. Báo đúng số
+      # mà không biết số đó từ đâu ra thì vẫn có thể là trùng hợp.
+      - name: Cổng graph — bắt được vùng mù của phân tích tĩnh
+        run: python tests/integration/test_cong_graph.py --ra .wp-it
