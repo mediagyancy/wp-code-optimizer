@@ -1,0 +1,27 @@
+/* Style nền của fixture-bien-doi. Giữ tối thiểu: theme này dựng ra để đo phép biến đổi
+   PHP, không để đo phép gỡ CSS — việc đó đã có fixture-theme và go_css.py lo. */
+
+.fxb-dau {
+	padding: 1rem;
+}
+
+.fxb-dau__ten {
+	margin: 0;
+	font-weight: 600;
+}
+
+.fxb-than {
+	padding: 1rem;
+}
+
+.fxb-gia {
+	font-variant-numeric: tabular-nums;
+}
+
+.fxb-bai__ten {
+	margin: 0 0 0.5rem;
+}
+
+.fxb-chan {
+	padding: 1rem;
+}

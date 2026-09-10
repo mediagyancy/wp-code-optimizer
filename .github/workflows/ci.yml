@@ -70,3 +70,16 @@ jobs:
 
       - name: So kết luận của bộ quét với sự thật từ WordPress
         run: python tests/integration/test_integration.py --ra .wp-it
+
+      # Tầng 5 — thước cho phép BIẾN ĐỔI, không phải cho phép xoá.
+      #
+      # Bước này là một phép HIỆU CHUẨN, không phải một phép kiểm tính năng: nó tiêm
+      # sáu lỗi refactor thật vào một theme fixture rồi đòi thước phải ĐỎ đúng chỗ ở
+      # từng ca. Nó cũng chụp bản không đổi hai lượt trước và thoát khác 0 nếu hai lượt
+      # đã lệch — baseline không ổn định thì mọi kết quả "bắt được" đều vô nghĩa.
+      #
+      # Nếu bước này đỏ thì đừng nới thước cho nó xanh: hoặc một mặt đo vừa mất khả
+      # năng bắt lỗi, hoặc baseline vừa mất tính tất định. Cả hai đều là tin tốt khi
+      # phát hiện ở CI, và là tin rất xấu khi phát hiện trên site của khách.
+      - name: Tầng 5 — hiệu chuẩn thước tương đương hành vi (6 ca tiêm)
+        run: python tests/integration/tang5.py --ra .wp-it
