@@ -127,8 +127,11 @@ thể là trùng hợp.
 
 ### [4] Bản đồ + checklist
 
-Bản đồ dựng từ `graph.json` + `graph-trust.json` bằng `archify` (đã có trong môi
-trường). Checklist ở `references/checklist.md` — mỗi cổng mang `because`, và **không một
+Bản đồ dựng từ `graph.json` + `graph-trust.json`. Trong môi trường có `archify` thì dùng
+nó — **nhưng chưa kiểm** nó đọc được JSON máy sinh trực tiếp hay chỉ nhận Mermaid/văn
+xuôi; chưa kiểm thì chuyển graph sang Mermaid (`graph LR` với node id làm nhãn) rồi đưa
+vào. Bản đồ nào không truy được từng node về một dòng trong `graph.json` thì không phải
+bản đồ của cây này. Checklist ở `references/checklist.md` — mỗi cổng mang `because`, và **không một
 cổng nào viện dẫn "WordPress best practice" làm thẩm quyền**, vì thẩm quyền đó không tồn
 tại: Plugin Handbook tự tuyên bố "cố tình không kê đơn", Theme Handbook không có một dòng
 về kiến trúc PHP, core để ngỏ ticket PSR-4 autoloader nhiều năm.
