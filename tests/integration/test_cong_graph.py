@@ -24,7 +24,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 GOC = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(GOC))
-SCRIPTS = os.path.join(REPO, "skills", "wp-code-optimize", "scripts")
+SCRIPTS = os.path.join(REPO, "skills", "code-optimize", "scripts")
 
 dat, hong = [], []
 

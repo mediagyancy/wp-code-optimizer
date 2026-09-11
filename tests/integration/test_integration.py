@@ -22,6 +22,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -52,6 +53,19 @@ def main():
     if not os.path.exists(theme):
         sys.exit("chưa dựng WordPress — chạy dung_wp.py trước")
 
+    # ── tự bảo đảm tiền đề: theme kích hoạt phải là fixture-theme.
+    #
+    # Bộ này từng ĐỎ khi chạy sau test_cong_graph.py, vì adn-nen.php --theme-slug đổi
+    # theme kích hoạt và để nguyên. Không tự đặt theme thì kết quả phụ thuộc thứ tự chạy —
+    # và CI xanh chỉ vì thứ tự job tình cờ đúng.
+    shutil.copy(os.path.join(GOC, "doi_theme.php"), os.path.join(W, "doi_theme.php"))
+    d = subprocess.run(["php"] + php_args() + [os.path.join(W, "doi_theme.php"),
+                                                 "--theme-slug=fixture-theme"],
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if d.returncode != 0:
+        print((d.stdout or "")[-400:], (d.stderr or "")[-400:])
+        sys.exit("không đặt được theme kích hoạt về fixture-theme")
+
     # ── sự thật nền, lấy từ WordPress đang chạy
     r = subprocess.run(["php"] + php_args() + [os.path.join(W, "su-that-nen.php")],
                        capture_output=True, text=True, encoding="utf-8", errors="replace")
@@ -64,6 +78,9 @@ def main():
     lop_that = set(nen["class_trong_html"])
 
     print(f"\nSỰ THẬT NỀN từ WordPress đang chạy")
+    kiem("theme đang chụp đúng là fixture-theme (không phải theme của bộ test khác)",
+         nen["theme_dir"].rstrip("/").endswith("/fixture-theme"),
+         f"theme_dir = {nen['theme_dir']}")
     print(f"  WooCommerce bật: {nen['woocommerce_active']}")
     print(f"  file theme WordPress THỰC SỰ nạp: {len(nap)}")
     print(f"  class THỰC SỰ có trong HTML: {len(lop_that)}  {sorted(lop_that)}")

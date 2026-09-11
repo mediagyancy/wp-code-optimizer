@@ -50,6 +50,18 @@ jobs:
         shell: bash
         run: python tests/test_preview.py
 
+      # code-optimize: backup toàn cây + phục hồi phải CHẠY THẬT, không chỉ được mô tả.
+      # Ca quyết định: xoá hẳn cây nguồn, phục hồi chỉ từ backup, so byte với bản gốc
+      # giữ riêng — đó là tình huống thật của một đường lùi.
+      - name: code-optimize — diễn tập backup/phục hồi
+        shell: bash
+        run: python tests/test_sao_luu.py
+
+      # code-optimize: cổng clean fail-closed, hai chiều + ca đối chứng ngược.
+      - name: code-optimize — cổng clean
+        shell: bash
+        run: python tests/test_cong_clean.py
+
   integration:
     # Tầng mà fixture tĩnh KHÔNG thay được: dựng WordPress + WooCommerce thật rồi
     # hỏi chính nó file nào được nạp và class nào được render, sau đó so với kết

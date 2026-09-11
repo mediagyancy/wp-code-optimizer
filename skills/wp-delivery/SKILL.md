@@ -206,7 +206,9 @@ deploy_root: ""
 files_to_change: []
 surfaces_to_verify: []   # bề mặt phải kiểm DÙ KHÔNG SỬA
 invariants: []
-rollback_plan: []
+rollback_plan: []        # KHÔNG để rỗng khi status rời PLANNED. Đường lùi toàn cây đã có
+                         # và đã diễn tập: skills/code-optimize/scripts/sao_luu.py
+                         # (luu trước khi sửa · phuc_hoi --ghi để lùi · tự so byte sau khi lùi)
 blocking_unknowns: []    # mọi điều chưa rõ có thể đổi kết quả/rủi ro phải được giải quyết
 status: "PLANNED"
 ```

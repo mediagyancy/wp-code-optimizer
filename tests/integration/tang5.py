@@ -105,7 +105,14 @@ NOISE_FIRE = re.compile(
     r"pre_(site_)?transient_.*|(site_)?transient_.*|"
     r"pre_determine_locale|"
     r"extra_theme_headers|theme_file_path|stylesheet|template|stylesheet_directory.*|"
-    r"template_directory.*"
+    r"template_directory.*|"
+    # `query` là hook của $wpdb, fire mỗi khi có truy vấn DB THẬT. Nó fire hay không
+    # tuỳ trạng thái cache, không tuỳ code theme: chạy Tầng 5 ngay sau khi một bộ test
+    # khác đổi theme (doi_theme.php flush cache) thì lượt A đọc site_option từ DB còn
+    # lượt B đọc từ cache — lệch từ ký tự 11076, đúng ở
+    # `default_site_option_can_compress_scripts` → `query`. Cùng họ với option/transient
+    # ở trên, và cùng đánh đổi: mặt `fire` không trả lời "có đổi số truy vấn DB không".
+    r"query|pre_get_site_option_.*|(default_)?site_option_.*"
     r")$"
 )
 
