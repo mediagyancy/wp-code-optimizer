@@ -570,7 +570,7 @@ Lớn hơn 0 mới là lỗi. **"Nhìn ổn" không phải bằng chứng, và �
 > Browser pane lẫn `chrome-devtools` MCP, nên không chữa được bằng cách đổi công cụ.
 >
 > **Cấm dùng `window.innerWidth` để tính** trong mọi script đo layout; vẫn được báo cáo
-> giá trị của nó để đối chiếu. Ràng buộc này nay có khẳng định chạy trong CI —
+> giá trị của nó để đối chiếu. Ràng buộc này nay có khẳng định trong bộ test (và trong file CI, chưa chạy trên runner) —
 > `skills/wp-preview-builder/scripts/quyet_dinh_tran.py` giữ cả hai công thức và bắt buộc
 > phải tồn tại một ca mà chúng cho kết quả khác nhau. Quay về `innerWidth` sẽ làm đỏ một
 > test có tên.

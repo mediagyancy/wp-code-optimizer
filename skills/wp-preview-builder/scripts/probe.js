@@ -31,7 +31,8 @@
  *      BÌNH THƯỜNG với trang có carousel hoặc drawer — con số đó được in ra chính vì nếu
  *      không in thì danh sách thủ phạm rỗng sẽ bị đọc thành "probe bỏ sót".
  *
- * Công thức ở đây được ghim bằng khẳng định chạy trong CI: `scripts/quyet_dinh_tran.py`.
+ * Công thức ở đây được ghim bằng khẳng định trong bộ test (`tests/test_preview.py`, khai báo
+ * trong file CI): `scripts/quyet_dinh_tran.py`.
  * Đổi sang `innerWidth` sẽ làm đỏ một test có tên.
  */
 (() => {

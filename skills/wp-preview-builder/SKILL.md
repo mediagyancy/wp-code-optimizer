@@ -107,7 +107,7 @@ tràn ngang = max(documentElement.scrollWidth, body.scrollWidth) − documentEle
 **Cấm dùng `window.innerWidth`** ở bất kỳ script đo layout nào. Lý do là một con số:
 công thức dùng `innerWidth` trả về **0** trên ca tràn **296px** đã biết, vì trong giả
 lập mobile `innerWidth` phình theo nội dung nên hai số cùng phình và phép trừ triệt
-tiêu. Ràng buộc này được ghim bằng khẳng định chạy trong CI:
+tiêu. Ràng buộc này được ghim bằng khẳng định trong bộ test — khai báo trong file CI, chưa chạy trên runner:
 `scripts/quyet_dinh_tran.py`. Muốn quay về `innerWidth` thì phải làm đỏ một test có tên.
 
 **Hai biên khác nhau, và phải biết là chúng khác nhau:**

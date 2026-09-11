@@ -114,7 +114,7 @@ trả **0** trên một trang tràn **296px**. Số 0 đó trông y hệt trang 
 `docs/KINH-NGHIEM-WORDPRESS.md` còn tệ hơn một bậc: tiêu chí so sánh lỗi thời, và chỉ một
 bề rộng 375px. Danh sách bề rộng ở phần "cách chạy" thiếu mốc 1440 dù bảng phía trên có.
 
-Nay công thức được ghim bằng khẳng định chạy trong CI
+Nay công thức được ghim bằng khẳng định trong bộ test (khai báo trong file CI; nhánh này chưa push nên chưa chạy trên runner)
 (`skills/wp-preview-builder/scripts/quyet_dinh_tran.py` + `tests/test_preview.py`, 29
 khẳng định): cả hai công thức được giữ lại, và bộ hiệu chuẩn bắt buộc phải tồn tại một ca
 mà chúng cho kết quả khác nhau — bộ nào không phân biệt được thì không kiểm gì cả.
