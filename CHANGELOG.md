@@ -5,6 +5,150 @@ và định dạng output còn có thể đổi.
 
 ---
 
+## [0.5.0] — 2026-09-10
+
+Hai lane mới, và một lỗi trong chính tài liệu của repo.
+
+### Thêm — Tầng 5: thước cho phép BIẾN ĐỔI, không phải cho phép xoá
+
+Bốn tầng cũ sinh ra để chứng minh một phép XOÁ là an toàn, và ba trong bốn tầng được
+tham số hoá bằng MỘT DANH SÁCH ĐÃ XOÁ. Phép viết lại không có danh sách đó nên tập
+truy vấn rỗng, nên chúng **PASS RỖNG** — đúng hình dạng input đã gây ra lỗi fail-open ở
+v0.2.0 và tái phát ở v0.4.0. Tầng 2 thì bị vô hiệu hoá bằng định nghĩa: chốt mạnh nhất
+của nó là "rule còn lại phải NGUYÊN VĂN như cũ".
+
+`tests/integration/adn-nen.php` + `tests/integration/tang5.py` chụp bề mặt quan sát được
+trước và sau rồi đòi hiệu bằng rỗng, trên bảy mặt: file nạp (có thứ tự) · hook (priority
++ thứ tự trong bucket + callback) · chuỗi fire · hàng đợi asset · chữ ký hàm kèm giá trị
+mặc định · HTML toàn văn · và một mặt TĨNH đọc điểm truy cập superglobal. Mặt tĩnh phải
+có vì ca "mất lời gọi sanitise" không để lại dấu runtime nào trên request không mang
+tham số đó.
+
+Noise được **đo**, không đoán: chụp bản không đổi hai lượt trước, lệch giữa hai lượt là
+noise của chính phép đo và bị trừ đi.
+
+Đo trên WordPress 7.1 + WooCommerce thật: noise 0 trên cả bảy mặt, **6/6 ca tiêm bị
+bắt**, và 6/6 bị bắt bởi đúng mặt đã dự đoán TRƯỚC khi chạy.
+
+Hai vùng mù chỉ lộ ra nhờ ca hiệu chuẩn:
+
+- Lượt đầu báo `NOISE_QUA_LON` ở mặt `fire`, lệch từ ký tự 3523 — lượt sau đọc option từ
+  cache còn ấm nên không fire lại `pre_option_*`. Đã lọc họ hook option/transient/cache.
+  **Đánh đổi khai báo rõ:** mặt `fire` nay không trả lời được "có đổi tập option được đọc
+  hay không".
+- Ca "đảo chiều điều kiện" ban đầu KHÔNG mặt nào bắt, và lỗi nằm ở **chính phép đo**: bộ
+  chụp `require wp-load.php` rồi gọi thẳng `index.php`, bỏ qua giai đoạn `wp()` nơi hook
+  `wp` fire. Callback bị đảo chiều không chạy ở cả hai bản nên hiệu rỗng giả tạo.
+
+### Thêm — code nodes + cổng graph
+
+`skills/code-optimize/scripts/code_nodes.py` dựng đồ thị có KIỂU (node: file · hàm ·
+hook · handle asset; cạnh: require · goi · khai_bao · dang_ky · phat · enqueue ·
+phu_thuoc · template_part). Đặt **cạnh** `quet_chet.py` chứ không sửa nó: `quet_chet.py`
+có 13 khẳng định đang dựa vào, và nó trả lời câu khác — "cái gì chết", không phải "cái gì
+nối với cái gì". Nó cũng dựng một đồ thị nội bộ nhưng chỉ file→file, không có cạnh hook,
+và nó **bỏ** đồ thị đi.
+
+`cong_graph.py` là cổng trung thực: đồ thị tĩnh là **giả thuyết**, ADN runtime là thứ phủ
+định hay xác nhận nó. Hai chiều lệch không đối xứng, lấy nguyên tinh thần của
+`test_integration.py`: "runtime có mà tĩnh không thấy" là **chí mạng** (node trông mồ côi
+nhưng đang chạy), "tĩnh nói có mà runtime không có" là họ lỗi `TAT_AM_THAM`. Fail-closed,
+exit 9, muốn đi tiếp phải khai số bằng `--chap-nhan-mu`.
+
+Hiệu chuẩn bằng fixture `inc/hook-dong.php`: một hook tên biến, một callback ghép chuỗi —
+hai dạng phổ biến nhất trong WordPress thật. 18 khẳng định, trong đó phép kiểm mạnh nhất
+là **ca đối chứng ngược**: gỡ đúng file sinh ra hai cạnh động rồi đòi cổng về 0.
+
+### Thêm — backup toàn cây + phục hồi ĐÃ DIỄN TẬP
+
+Trước `skills/code-optimize/scripts/sao_luu.py`, repo có **0 dòng code phục hồi** và **0
+khẳng định test** về backup — trong khi bộ test đã 38 khẳng định. `wp_safe_write.py` ghi
+`.bak` cạnh từng file, tức không có mốc thời điểm nhất quán của cả cây. Một đường lùi chưa
+từng chạy là một đoạn văn.
+
+Ba lệnh: `luu` (chép toàn cây + manifest SHA-256 từng file, tự so bản chép với bản gốc
+trước khi nhận), `kiem` (drift: THÊM / THIẾU / KHÁC), `phuc_hoi` (mặc định thử; `--ghi`
+mới phục hồi thật; từ chối backup không tự nhất quán; tự so byte cây vừa dựng với manifest
+— "đã copy xong" không phải "đã phục hồi xong").
+
+23 khẳng định, ba phần, và phần ba là phần duy nhất đáng tin: hiệu chuẩn `kiem` trên ba
+kiểu hỏng cố ý · làm hỏng một file **bên trong** backup và đòi `phuc_hoi` từ chối ·
+**xoá hẳn cây nguồn** rồi phục hồi chỉ từ backup, so byte với bản gốc giữ riêng — 0 lệch.
+
+`--bo-cr` chỉ dành cho `kiem` khi so local với bản tải từ host (CRLF/LF từng làm
+`checkout.css` lệch đúng 1.049 byte = 1.049 dòng); test chứng minh nó **không** che được
+thay đổi nội dung thật.
+
+### Thêm — cổng clean, và skill `code-optimize`
+
+`cong_clean.py` là cổng [0] của `/code-optimize`, fail-closed, hai điều kiện: `quet_chet.py`
+quét lại phải ra **rỗng** (định nghĩa xong của chính cleaner — "lặp tới khi rỗng"), và có
+backup toàn cây **khớp** cây hiện tại. Thiếu một là chặn: exit 7 `CHUA_CLEAN` hoặc exit 8
+`KHONG_CO_DUONG_LUI`, và **gọi tên** đúng xác còn sót. 19 khẳng định, kể cả ca đối chứng
+ngược: gieo một file mồ côi vào cây đã mở được, cổng phải đóng lại và gọi tên file đó.
+
+`skills/code-optimize/SKILL.md` là điểm vào: pipeline bảy bước với bốn cổng, thứ tự bắt
+buộc, không có `--force`. Lane biến đổi theo Mikado Method (mục tiêu → thử → vẽ graph →
+**hoàn tác** → lặp → hiện thực ngược), vì đó là phương pháp có hoàn tác gắn sẵn và graph
+là artefact duy nhất. `references/checklist.md`: mỗi cổng mang `because`, **không cổng nào
+viện dẫn "WordPress best practice"** — thẩm quyền đó không tồn tại (Plugin Handbook tự
+tuyên bố cố tình không kê đơn; Theme Handbook không có một dòng về kiến trúc PHP; core để
+ngỏ ticket PSR-4 autoloader nhiều năm). Chỉ số duy nhất được phép hứa, có số đo:
+`--classmap-authoritative`, 176ms → 99ms, và chỉ khi đích có Composer autoloader.
+
+Skill này **không hứa "tinh gọn"**. Thước đếm dòng thưởng cho việc xoá thứ đắt nhất —
+chú thích kể lại ca hỏng, vòng giữ thứ tự nạp, guard `ABSPATH`.
+
+### Thêm — skill `wp-preview-builder`
+
+Gom kinh nghiệm dựng và nghiệm thu bản xem trước thành luật, mỗi luật kèm ca hỏng đã trả
+giá. Tám cạm bẫy trong `references/cam-bay-preview.md`, và cả tám đều cho ra **âm tính
+giả** — không cái nào làm tool báo lỗi, chúng làm tool báo *sạch*.
+
+### Sửa — tài liệu của repo đang dạy đúng phép đo sinh ra âm tính giả
+
+`docs/QUY-DINH-CLAUDE-WORDPRESS.md` in công thức tràn ngang lấy `window.innerWidth` làm
+số bị trừ. Trong giả lập mobile, `innerWidth` phình theo nội dung: viewport 344px với nội
+dung rộng 640px thì nó báo 640, đúng bằng bề rộng cuộn, nên hiệu triệt tiêu và phép đo
+trả **0** trên một trang tràn **296px**. Số 0 đó trông y hệt trang sạch.
+`docs/KINH-NGHIEM-WORDPRESS.md` còn tệ hơn một bậc: tiêu chí so sánh lỗi thời, và chỉ một
+bề rộng 375px. Danh sách bề rộng ở phần "cách chạy" thiếu mốc 1440 dù bảng phía trên có.
+
+Nay công thức được ghim bằng khẳng định trong bộ test (khai báo trong file CI; nhánh này chưa push nên chưa chạy trên runner)
+(`skills/wp-preview-builder/scripts/quyet_dinh_tran.py` + `tests/test_preview.py`, 29
+khẳng định): cả hai công thức được giữ lại, và bộ hiệu chuẩn bắt buộc phải tồn tại một ca
+mà chúng cho kết quả khác nhau — bộ nào không phân biệt được thì không kiểm gì cả.
+
+Hai lỗ trong chính phép canh đó, tìm ra nhờ ca hiệu chuẩn dùng **nguyên văn** dòng sai
+lịch sử thay vì một biến thể tự nghĩ: dòng sai gốc viết bằng dấu trừ Unicode `−`
+(U+2212) nên regex chỉ khớp `-` ASCII sẽ mù trước đúng dòng nó sinh ra để chặn; và dạng
+**so sánh** `scrollWidth == innerWidth` không có dấu trừ nào nên thoát hết các mẫu ban đầu.
+
+### Sửa — bộ integration cũ xanh nhờ thứ tự chạy
+
+`adn-nen.php --theme-slug` gọi `switch_theme()` và để nguyên — đúng thiết kế, vì nó cần
+theme đó ở request kế. Hệ quả: chạy `test_cong_graph.py` rồi `test_integration.py` thì bộ
+sau chụp nhầm `fixture-bien-doi`, `fxt-bac--1` không còn trong HTML, và khẳng định "class
+ghép chuỗi được giữ" **đỏ**. CI xanh chỉ vì thứ tự job tình cờ đúng.
+
+Nay mỗi bộ tự bảo đảm tiền đề của mình bằng `doi_theme.php` trước khi chụp, và
+`test_integration.py` có thêm một khẳng định: theme đang chụp đúng là theme của nó. Chạy
+bốn bộ theo thứ tự đảo ngược để chứng minh: xanh hết.
+
+Phép sửa này lộ thêm một nguồn noise cho Tầng 5: hook `query` của `$wpdb` fire ở lượt A
+(ngay sau đổi theme, cache vừa flush, đọc `site_option` từ DB) mà không fire ở lượt B
+(đọc từ cache). Cùng họ với noise option/transient, cùng cách xử lý, và cùng đánh đổi khai
+báo: mặt `fire` không trả lời "có đổi số truy vấn DB không".
+
+### Sửa — chốt riêng tư xanh nhờ may
+
+`tests/kiem_rieng_tu.py` quét cả `.wp-it/`, nên hễ ai chạy tầng integration ở máy là nó
+đỏ **462 dòng** email tác giả trong core WordPress. CI vẫn xanh, nhưng xanh **nhờ may**:
+chốt chạy ở job `unit`, mà job `unit` không dựng `.wp-it`. Bảo vệ thật chỉ tồn tại do
+tình cờ hai job tách nhau — và 462 báo động sai thì không ai đọc tới dòng 463.
+
+---
+
 ## [0.4.0] — 2026-09-05
 
 Thêm một phép kiểm mà cả ba tầng cũ đều mù, sau khi một phiên khác báo về đúng loại

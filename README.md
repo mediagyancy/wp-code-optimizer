@@ -1,7 +1,8 @@
 # WP Code Optimizer
 
-**Three Claude Code skills for working on live WordPress sites without breaking them:
-ship changes safely, clean out dead code, and tune Core Web Vitals.**
+**Five Claude Code skills for working on live WordPress sites without breaking them:
+ship changes safely, clean out dead code, restructure what remains with a runtime-verified
+code graph, build UI previews you can trust, and tune Core Web Vitals.**
 
 > ⚠️ **The skill content is written in Vietnamese.** The scripts, CLI flags and output
 > are Vietnamese too. This README is bilingual; everything below the divider is Vietnamese.
@@ -17,12 +18,14 @@ orders, where a bad deploy costs money the same afternoon. Every rule in here ex
 something went wrong first. Where a rule came from a specific failure, the failure is written
 down next to it, because a rule without its reason is a rule people work around.
 
-Three skills, three moments in the same job:
+Five skills, five moments in the same job:
 
 | Skill | Use it when | Core idea |
 |---|---|---|
 | **`wp-delivery`** | editing a theme/plugin and shipping it to a live host | Prove local matches host *before* editing. Deploy in ordered batches. Never open a live file in write mode. |
 | **`wp-code-cleaner`** | auditing or deleting dead code | Deleting is easy; *proving the deletion broke nothing* is the work. Four verification tiers, each calibrated against a known-bad case. |
+| **`code-optimize`** | restructuring what survived the cleanup | Deletion is provable; *transformation* is not, with the cleaner's tiers — 5 of 6 typical refactoring bugs slip past all four. So: a static code graph treated as a **hypothesis**, checked against a real running WordPress, a rehearsed full-tree rollback, and a fifth tier that diffs the observable runtime surface before/after. Gated: refuses to run until the cleaner's scan comes back empty and a matching backup exists. |
+| **`wp-preview-builder`** | building a UI preview / prototype and deciding whether to trust it | "Looks fine" is not evidence and neither is a screenshot. Measure at 344/375/768/1280/1440 with a formula that is pinned in CI — the obvious one returned 0 on a known 296px overflow. |
 | **`wp-corewebvital`** | optimizing Core Web Vitals on LiteSpeed | Safe-first: only settings that can't break the site, no third-party services. |
 
 They compose: audit with `wp-code-cleaner`, ship with `wp-delivery`, then tune speed with
@@ -64,16 +67,23 @@ field in each `SKILL.md` is what drives that.
 ## Tests
 
 ```bash
-python tests/chay_test.py        # 36 assertions over PHP + CSS fixtures
+python tests/chay_test.py        # 38 assertions over PHP + CSS fixtures
 python tests/kiem_rieng_tu.py    # no private data leaked into the repo
+python tests/test_preview.py     # 29 — overflow formula pinned against the real 296px incident
+python tests/test_sao_luu.py     # 23 — full-tree backup + a restore that actually runs
+python tests/test_cong_clean.py  # 19 — the /code-optimize entry gate, both directions
 
 # integration: downloads WordPress + WooCommerce, runs them, compares
 python tests/integration/dung_wp.py --ra .wp-it
-python tests/integration/test_integration.py --ra .wp-it
+python tests/integration/test_integration.py --ra .wp-it   # 13 — is the cleaner right?
+python tests/integration/tang5.py --ra .wp-it              # 6 injected refactoring bugs, all caught
+python tests/integration/test_cong_graph.py --ra .wp-it    # 18 — static graph vs runtime, both directions
 ```
 
-Both self-calibrate: they plant a known-bad case and refuse to report success unless
-the check catches it first.
+Every suite self-calibrates: it plants a known-bad case and refuses to report success
+unless the check catches it first. The strongest ones also run the **reverse control** —
+remove the cause and demand the check goes quiet — because "reports 2" can be a
+coincidence until you show it reports 0 when it should.
 
 ## Requirements
 
@@ -134,7 +144,7 @@ read the calibration section above — that's the load-bearing idea.
 
 ## Status and confidence
 
-Version **0.2.0**. Pre-1.0: CLI flags and output format may still change.
+Version **0.5.0**. Pre-1.0: CLI flags and output format may still change.
 
 | Area | Confidence | What backs it |
 |---|---|---|
@@ -177,7 +187,7 @@ MIT — see [LICENSE](LICENSE). Not affiliated with WordPress, Automattic, LiteS
 
 # WP Code Optimizer — bản tiếng Việt
 
-**Ba skill cho Claude Code, dùng khi làm việc trên site WordPress đang chạy thật: đưa thay
+**Năm skill cho Claude Code, dùng khi làm việc trên site WordPress đang chạy thật: đưa thay
 đổi lên host mà không làm sập, dọn code chết mà chứng minh được, và tối ưu Core Web Vitals.**
 
 ## Đây là cái gì
@@ -191,6 +201,8 @@ bên cạnh, vì một luật không kèm lý do là một luật người ta s�
 |---|---|---|
 | **`wp-delivery`** | sửa theme/plugin rồi đưa lên host thật | Chứng minh local khớp host **trước khi** sửa. Deploy theo đợt có thứ tự. Không bao giờ mở file sống ở chế độ ghi. |
 | **`wp-code-cleaner`** | soát hoặc xoá code chết | Xoá thì dễ; **chứng minh xoá không hỏng gì** mới là việc. Bốn tầng xác minh, tầng nào cũng phải hiệu chuẩn bằng ca hỏng đã biết. |
+| **`code-optimize`** | tái cấu trúc phần còn lại sau khi dọn | Xoá thì chứng minh được; **biến đổi** thì không, bằng bốn tầng của cleaner — 5/6 lỗi refactor điển hình lọt qua cả bốn. Nên: đồ thị tĩnh chỉ là **giả thuyết**, đối chứng với WordPress đang chạy thật, đường lùi toàn cây đã diễn tập, và Tầng 5 so bề mặt runtime trước/sau. Có cổng: từ chối chạy khi cleaner chưa quét ra rỗng hoặc chưa có backup khớp. |
+| **`wp-preview-builder`** | dựng bản xem trước / prototype và quyết xem có tin được không | "Nhìn ổn" không phải bằng chứng, ảnh chụp cũng không. Đo ở 344/375/768/1280/1440 với công thức được ghim trong CI — công thức hiển nhiên từng trả 0 trên trang tràn 296px. |
 | **`wp-corewebvital`** | tối ưu CWV trên LiteSpeed | An toàn trước: chỉ dùng setting không thể làm hỏng site, không phụ thuộc dịch vụ bên thứ ba. |
 
 Ba cái ghép được với nhau: soát bằng `wp-code-cleaner`, giao hàng bằng `wp-delivery`, rồi
@@ -227,16 +239,23 @@ anh mô tả một việc khớp — phần `description` trong mỗi `SKILL.md`
 ## Chạy test
 
 ```bash
-python tests/chay_test.py        # 36 khẳng định trên fixture PHP + CSS
+python tests/chay_test.py        # 38 khẳng định trên fixture PHP + CSS
 python tests/kiem_rieng_tu.py    # không có dữ liệu riêng lọt vào repo
+python tests/test_preview.py     # 29 — công thức tràn ngang ghim bằng ca 296px thật
+python tests/test_sao_luu.py     # 23 — backup toàn cây + một lần phục hồi CHẠY THẬT
+python tests/test_cong_clean.py  # 19 — cổng vào của /code-optimize, hai chiều
 
 # integration: tự tải WordPress + WooCommerce, chạy thật rồi so kết quả
 python tests/integration/dung_wp.py --ra .wp-it
-python tests/integration/test_integration.py --ra .wp-it
+python tests/integration/test_integration.py --ra .wp-it   # 13 — cleaner kết luận có đúng không?
+python tests/integration/tang5.py --ra .wp-it              # 6 lỗi refactor tiêm vào, bắt hết
+python tests/integration/test_cong_graph.py --ra .wp-it    # 18 — đồ thị tĩnh vs runtime, hai chiều
 ```
 
-Cả hai tự hiệu chuẩn: gieo một ca hỏng đã biết rồi từ chối báo đạt nếu phép kiểm
-không bắt được ca đó trước.
+Mọi bộ đều tự hiệu chuẩn: gieo một ca hỏng đã biết rồi từ chối báo đạt nếu phép kiểm
+không bắt được ca đó trước. Bộ mạnh nhất còn chạy **ca đối chứng ngược** — gỡ nguyên nhân
+rồi đòi phép kiểm im lặng — vì "báo 2" vẫn có thể là trùng hợp cho tới khi chứng minh được
+nó báo 0 đúng lúc phải báo 0.
 
 ## Cần gì
 
@@ -269,7 +288,7 @@ tích luỹ từ ba site WordPress sản xuất (ẩn danh thành Dự án A, B,
 
 ## Trạng thái và mức chắc chắn
 
-Phiên bản **0.2.0**. Trước 1.0, tham số dòng lệnh và định dạng output còn có thể đổi.
+Phiên bản **0.5.0**. Trước 1.0, tham số dòng lệnh và định dạng output còn có thể đổi.
 
 | Phần | Mức chắc chắn | Dựa vào đâu |
 |---|---|---|

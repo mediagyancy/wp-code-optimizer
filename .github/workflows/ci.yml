@@ -40,6 +40,28 @@ jobs:
         shell: bash
         run: python tests/kiem_rieng_tu.py
 
+      # wp-preview-builder: ghim CÔNG THỨC đo tràn ngang, không cần trình duyệt.
+      #
+      # Ranh giới phải nói rõ: bước này KHÔNG chứng minh probe chạy đúng trong một trang
+      # thật. Nó chứng minh công thức là công thức đúng, và chặn việc lặng lẽ quay về
+      # `innerWidth` — thứ đã từng trả về 0 trên một trang tràn 296px. CI không có trình
+      # duyệt nên phần quyết định được tách sang Python và ghim bằng số của ca hỏng thật.
+      - name: wp-preview-builder — công thức tràn ngang đã hiệu chuẩn
+        shell: bash
+        run: python tests/test_preview.py
+
+      # code-optimize: backup toàn cây + phục hồi phải CHẠY THẬT, không chỉ được mô tả.
+      # Ca quyết định: xoá hẳn cây nguồn, phục hồi chỉ từ backup, so byte với bản gốc
+      # giữ riêng — đó là tình huống thật của một đường lùi.
+      - name: code-optimize — diễn tập backup/phục hồi
+        shell: bash
+        run: python tests/test_sao_luu.py
+
+      # code-optimize: cổng clean fail-closed, hai chiều + ca đối chứng ngược.
+      - name: code-optimize — cổng clean
+        shell: bash
+        run: python tests/test_cong_clean.py
+
   integration:
     # Tầng mà fixture tĩnh KHÔNG thay được: dựng WordPress + WooCommerce thật rồi
     # hỏi chính nó file nào được nạp và class nào được render, sau đó so với kết
@@ -70,3 +92,24 @@ jobs:
 
       - name: So kết luận của bộ quét với sự thật từ WordPress
         run: python tests/integration/test_integration.py --ra .wp-it
+
+      # Tầng 5 — thước cho phép BIẾN ĐỔI, không phải cho phép xoá.
+      #
+      # Bước này là một phép HIỆU CHUẨN, không phải một phép kiểm tính năng: nó tiêm
+      # sáu lỗi refactor thật vào một theme fixture rồi đòi thước phải ĐỎ đúng chỗ ở
+      # từng ca. Nó cũng chụp bản không đổi hai lượt trước và thoát khác 0 nếu hai lượt
+      # đã lệch — baseline không ổn định thì mọi kết quả "bắt được" đều vô nghĩa.
+      #
+      # Nếu bước này đỏ thì đừng nới thước cho nó xanh: hoặc một mặt đo vừa mất khả
+      # năng bắt lỗi, hoặc baseline vừa mất tính tất định. Cả hai đều là tin tốt khi
+      # phát hiện ở CI, và là tin rất xấu khi phát hiện trên site của khách.
+      - name: Tầng 5 — hiệu chuẩn thước tương đương hành vi (6 ca tiêm)
+        run: python tests/integration/tang5.py --ra .wp-it
+
+      # Cổng graph — đối chứng đồ thị TĨNH với ADN runtime, hai chiều.
+      #
+      # Phép kiểm mạnh nhất trong bước này không phải "cổng báo 2 vùng mù" mà là CA ĐỐI
+      # CHỨNG NGƯỢC: gỡ đúng file sinh ra hai cạnh động rồi đòi cổng về 0. Báo đúng số
+      # mà không biết số đó từ đâu ra thì vẫn có thể là trùng hợp.
+      - name: Cổng graph — bắt được vùng mù của phân tích tĩnh
+        run: python tests/integration/test_cong_graph.py --ra .wp-it
