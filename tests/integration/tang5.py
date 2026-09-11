@@ -302,6 +302,24 @@ def main():
     print("TANG 5 — hieu chuan thuoc do tuong duong hanh vi")
     print("=" * 72)
 
+    # ── 0. LAM AM: mot luot bi BO DI, truoc khi do bat cu gi.
+    #
+    # Request DAU TIEN tren mot site vua cai khac moi request sau no, va khac theo cach
+    # khong lien quan gi toi theme: wp_get_custom_css_post() lan dau chay WP_Query tim
+    # post custom CSS roi ghi id vao theme_mod; lan sau doc theme_mod. CI chay tren site
+    # vua dung nen luot A la luot dau lanh, luot B am → mat `fire` lech tu ky tu 17058 o
+    # `theme_mod_custom_css_post_id`, NOISE_QUA_LON, exit 6. Local khong bao gio thay vi
+    # .wp-it o may da am sau hang chuc luot chay.
+    #
+    # Them ten hook vao danh sach loc la whack-a-mole: lan sau se la mot cache khac. Cach
+    # dung la cach moi benchmark lam — bo luot dau. Ca TRUOC va SAU bien doi deu duoc do
+    # sau luot am nay nen phep so van cong bang; baseline noise cung do theo cung giao thuc.
+    print("\n[0] Lam am — mot luot bi bo, de luot dau lanh khong thanh noise")
+    _am, loi = chup(W, goc_theme)
+    if loi:
+        print("   " + loi)
+        return 5
+
     # ── 1. NOISE: chup ban KHONG DOI hai luot
     print("\n[1] Do NOISE — chup ban khong doi code hai luot")
     n1, loi = chup(W, goc_theme)
