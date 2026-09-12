@@ -134,7 +134,7 @@ read the calibration section above — that's the load-bearing idea.
 
 ## Status and confidence
 
-Version **0.2.0**. Pre-1.0: CLI flags and output format may still change.
+Version **0.5.0**. Pre-1.0: CLI flags and output format may still change.
 
 | Area | Confidence | What backs it |
 |---|---|---|

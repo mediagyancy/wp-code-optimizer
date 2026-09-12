@@ -10,6 +10,12 @@ Nguồn: toàn bộ 697 transcript trong `~/.claude/projects` (23 dự án), 3 t
 deploy trong repo. Ba dự án WordPress thật: **Dự án A** (WooCommerce, theme `theme-a`), **Dự án B** (WooCommerce, theme `theme-b`),
 **Dự án C** (Elementor + Rank Math). Mỗi bài học dưới đây gắn với một lần đã trả giá thật.
 
+> **Cập nhật 12/09/2026.** Bổ sung bài học từ một tuần làm việc dày của Dự án A (05–12/09): WooCommerce
+> lõi (ẩn hàng hết, đếm danh mục, mô tả SP không qua `the_content`), khoá transient bám version, đè CSS
+> bằng lớp phạm vi, màn cực hẹp đo trên site thật, đổi slug trang, làm tròn giá ở cửa đọc, nhập dữ liệu
+> hàng loạt, công cụ quản trị nội bộ, và ba chốt đa phiên (tag cứu hộ có chú thích, ba lỗ hook, bản tải
+> FTP thiếu thư mục). Rải vào các nhóm D, E, F, G, H, K, L, M.
+
 ---
 
 ## A. MƯỜI RỦI RO CHẾT NGƯỜI — xếp theo thiệt hại
@@ -99,6 +105,13 @@ reusable block (`wp/v2/blocks`).
 
 ---
 
+- **Mô tả sản phẩm WooCommerce thường KHÔNG đi qua `the_content()`.** Template `product/details.php`
+  của Dự án A lấy thẳng `$product->get_description()` rồi tự `wpautop()+wp_kses_post()`, nên filter
+  treo trên `the_content` vô tác dụng — trang có schema `FAQPage` (đọc `post_content` ở `wp_footer`)
+  mà **không có accordion**, hỏng nửa vời rất dễ đọc nhầm là đạt. Bám `woocommerce_product_get_description`
+  (priority 20/21) và **bỏ guard `in_the_loop()/is_main_query()`** vì filter này chạy ngoài loop; tự
+  giới hạn phạm vi bằng một hàm `is_single_view()` để không đụng SP liên quan và wp-admin. (10/09/2026)
+
 ## D. UI (CSS & giao diện)
 
 - **Specificity của theme cũ là kẻ thù giấu mặt.** Nút submit CF7 ra xanh dương `#0d61ad` vì rule cũ
@@ -126,6 +139,18 @@ reusable block (`wp/v2/blocks`).
 
 ---
 
+- **Đè bằng lớp phạm vi phải KHAI LẠI mọi thuộc tính mình dựa vào — thắng điểm specificity là chưa
+  đủ.** Cơ chế này khác "rule cũ thắng": rule mới thắng điểm nhưng không khai lại thuộc tính cũ nên
+  giá trị cũ vẫn áp. `main.css` đặt `justify-content:space-between` cho `.main-navigation__inner`;
+  rule mới thắng specificity nhưng không khai lại thuộc tính đó → hàng menu bị đẩy văng **217px**.
+  Tái diễn cùng đợt ở màu bậc giá và dấu chấm đầu dòng phép tính. (11/09/2026)
+- **Màn cực hẹp (280–330px) phải đo trên SITE THẬT, không trên prototype.** Một đợt đo trên prototype
+  bỏ lọt 4 lỗi vì prototype chèn `<style>` cuối body và một script tự đặt `data-n` — production không
+  có (nút giỏ hiện một ô rỗng vì CSS `content:attr(data-n)` mà không ai đặt `data-n`). Và **"phần tử
+  vượt viewport" KHÔNG bắt được chữ bị cắt trong nút** — nút vẫn nằm trong màn: nút "Thêm vào giỏ" cắt
+  còn "Thêm vào gi" ở 124/234 mặt hàng khi đơn vị dài, phải đo Range của text so với hộp cha. Đo thẳng
+  ở 280/300/320/344/390 trên host bằng DevTools. (10–11/09/2026)
+
 ## E. UX (luồng người dùng — chỗ mất tiền thật)
 
 - **Form là đường sống của lead.** Thêm form mà không đọc `functions.php` trước: nếu site bắt buộc
@@ -143,6 +168,19 @@ reusable block (`wp/v2/blocks`).
   chủ và nút "Gửi thử" — người vận hành tự chẩn được, không phải hỏi vòng.
 
 ---
+
+- **Trong cột tóm tắt checkout, mọi DOM bị huỷ và dựng lại sau mỗi `updated_checkout`.** Đổi "bên mua"
+  sang Công ty: nút/label đúng nhưng hai ô Tên công ty + MST vẫn `display:none`, `required:false`. Khối
+  đó nằm trong cột tóm tắt nên WooCommerce bắn `updated_checkout` dựng lại nó thành phần tử **MỚI** (mất
+  cờ `data-*-da-gan`); hàm gắn chạy lại nhưng đọc một biến **chụp lúc tải trang** nên không bao giờ đổi.
+  Đọc trạng thái sống và **re-bind sau `updated_checkout`**, đừng init từ snapshot lúc tải. (07/09/2026)
+- **Bảng quản trị sửa dữ liệu tiền cần ba trụ: quyền theo cấp phát + nhật ký sửa + hoàn tác nhiều nấc.**
+  Trang "Quản lý báo giá" (Dự án A): quyền mặc định `manage_woocommerce`; tài khoản biên tập chỉ sửa khi
+  admin tick "ai được sửa bảng này" — menu họ phải treo ở cấp cao riêng vì `edit.php?post_type=product`
+  chặn trước khi tới trang con. Nhật ký (bảng riêng tạo bằng `dbDelta`) ghi ai/lúc nào/mã hàng/trường/cũ→mới,
+  ghi cả hoàn tác lẫn bản nháp; nút Khôi phục cho 3 lần sửa gần nhất mỗi ô, và **bản thân việc khôi phục
+  cũng được ghi**. Các lần Publish thành danh sách xổ (giữ 10), hoàn tác 3 đợt gần nhất — chặn ở **cả máy
+  chủ lẫn nút**, không chỉ ẩn nút. (11/09/2026)
 
 ## F. PLUGIN
 
@@ -177,6 +215,33 @@ reusable block (`wp/v2/blocks`).
   đối chiếu bằng `wp/v2`, không tin endpoint tự viết.
 - **Duplicate content là rủi ro dữ liệu**: 63 trang tỉnh nội dung na ná, 16 mô tả sản phẩm
   copy-paste → Google gộp canonical, loãng lực.
+- **Công tắc "Ẩn hàng hết khỏi danh mục" của WooCommerce lọc bằng thẻ `outofstock` trong taxonomy
+  `product_visibility` — thẻ đó có thể KHÔNG được gán.** Bật công tắc, đã lưu, nhưng 52/286 hàng hết
+  vẫn hiện vì site không gán thẻ. Cách chạy được: lọc theo `_stock_status` (WooCommerce luôn ghi trường
+  này cho mọi SP) ngay ở tầng truy vấn → `found_posts` giảm theo nên số "N mặt hàng" và số trang phân
+  trang tự đúng. Giữ đúng một công tắc ở nơi quản trị mong đợi, đừng hard-code luật riêng. (10/09/2026)
+- **Đếm SP danh mục bằng truy vấn thật (`wc_get_products(category=…)`) xoá luôn bài toán "cha + con ra
+  gấp đôi".** Truy vấn đã gộp sẵn SP của danh mục con nên **không cần né bằng `max(cha, tổng con)`** như
+  bản vá trước, đồng thời loại được hàng hết khỏi phép đếm. (10/09/2026)
+- **Làm tròn giá ở HAI cửa đọc phía khách, không ở từng template, và TUYỆT ĐỐI không ở getter dùng
+  chung với lúc lưu.** Chốt: database không đổi một chữ nhưng mọi bề mặt hiện giá tròn — đặt ở hàm tính
+  bậc (bảng giá/trang SP/giỏ) và filter giá WooCommerce; checkout + email ăn theo vì lấy số từ giỏ.
+  **KHÔNG đặt trong getter meta bậc giá** vì hàm đó còn được gọi lúc `save` → làm tròn ở đó là GHI số
+  tròn vào database (thứ chủ site cấm). Hai lệ: **tròn giá kg TRƯỚC khi nhân số lượng** để "324.000đ/kg
+  × 21kg" in ra đúng bằng số bên cạnh (6.804.000); tròn XUỐNG (lợi cho khách) và chặn ca giá <1.000đ
+  tròn xuống 0 (một mặt hàng 0đ giữa cửa hàng, không lỗi nào nói lên). 174/544 bậc giá đang lẻ. (09/09/2026)
+- **Ô trống khi nhập hàng loạt KHÔNG được ngầm hiểu là "xoá giá".** File thật có 656 ô trống; hiểu
+  trống = xoá thì một lần nhập mất giá 230 mặt hàng. Chốt: trống = dòng đó không đổi; chỉ ở các cột giá
+  thì trống/gạch (`- – — x X`) mới nghĩa là "không có bậc này" → xoá, và phải cảnh báo riêng ("N ô sẽ
+  bị XOÁ giá"), tô màu khác ô sửa thường, **không trộn vào số "N ô sẽ đổi"**. (07/09/2026)
+- **Đọc MỌI hàng tiêu đề, và để người nhập tự chốt ánh xạ cột.** File thật có hai hàng tiêu đề (một
+  tiếng Việt, một tên trường hệ thống: `retail_vat`, `ws_vat`…); đọc mỗi hàng đầu là bỏ đúng hai cột
+  giá cần nhập. File từ hệ thống khác thì tên cột không trùng → đoán mù là ghi số vào trường sai (nhầm
+  cột giá kg/thùng là lệch tiền 15 lần). Hệ thống đoán, người nhập sửa qua ô chọn + ô "dữ liệu bắt đầu
+  từ dòng thứ mấy". (07/09/2026)
+- **"0đ" bị đọc thành MIỄN PHÍ; dòng không có bậc giá nào không được là ứng viên sản phẩm.** Lỡ tạo 58
+  mã từ file có 2 mã không mang giá → trang in "0đ" nằm giữa cửa hàng dù WooCommerce tự tắt nút mua.
+  Chặn ở **cả hai đầu** (trình duyệt và server) vì ai gọi thẳng endpoint cũng phải qua cùng luật. (07/09/2026)
 
 ---
 
@@ -204,6 +269,13 @@ Kết quả thật Dự án B 27/04: 2.177KB → 1.506KB (−31%), FCP 926ms →
 - Dequeue thực tế ở Dự án B: bỏ `swiper.js` trùng (312KB), dequeue dashicons cho khách chưa đăng nhập
   (~35KB chặn render ở `<head>`), gỡ CSS Gutenberg khi theme classic (toàn site chỉ 1 class
   `wp-block-image`).
+- **Khoá transient phải mang theo version theme; và DOC/GHI/XOÁ phải cùng một khoá.** Sau một đợt chỉ
+  đổi CÁCH tính giá (không đổi trường nào), trang SP hiện 324.000đ/kg còn bảng giá vẫn 324.074đ/kg —
+  63/258 ô chưa tròn — vì hàm gom 286 dòng cache 1 giờ, không ai nghĩ phải bump khoá. Ba cạm bẫy im
+  lặng: **đổi khoá chỉ ở khâu GHI** → không bao giờ trúng cache → truy vấn đếm chạy mọi lượt tải (hỏng
+  hoàn toàn im lặng vì trang vẫn chạy); **câu xoá trỏ tiền tố cũ** → bản cache cũ nằm lại `wp_options`
+  mãi mãi; gắn khoá vào `SOLUS_THEME_VERSION` → mỗi đợt deploy cache tự chết, kể cả đợt chỉ đổi cách
+  tính. (09/09/2026)
 
 ---
 
@@ -265,6 +337,16 @@ Kết quả thật Dự án B 27/04: 2.177KB → 1.506KB (−31%), FCP 926ms →
   chính là cách báo cáo sai ra đời.
 - **Có đường lùi trước khi sửa**: git backup theme, thư mục `REVERT-<ngày>/` chứa đúng file tải từ
   site, dùng draft thay vì xoá.
+- **Đổi slug trang (ví dụ `/thanh-toan/` → `/checkout/`) KHÔNG auto-redirect; `wp_old_slug_redirect`
+  không chạy như tài liệu gợi ý.** WooCommerce trỏ trang bằng ID nên chức năng không đổi, nhưng đo ngay
+  sau khi đổi: slug cũ trả **404**. Link cũ nằm trong thư báo đơn đã gửi và tin nhắn khách → tự thêm 301
+  riêng, giữ nguyên chuỗi truy vấn; gỡ hàm đó là link cũ chết lại. Coi đổi slug là một **migration**,
+  không phải sửa giao diện. (07/09/2026)
+- **Bản tải cây từ FTP có thể THIẾU cả một thư mục (ví dụ `mu-plugins/`) → git đọc thành "đã xoá N file"
+  đang chạy thật.** Đè cây `wp-content` tải từ host, bản tải thiếu hẳn `mu-plugins/` (5 file banner/URL
+  danh mục/redirect, cả 5 trả 200 trên host); commit nguyên trạng là **xoá chúng khỏi git** mà không lỗi
+  nào nổi lên. Sau mỗi lần đè cây tải về, **đọc kỹ danh sách `D` trước khi commit**: file mất vì host
+  không có khác hẳn file mất vì bản tải thiếu thư mục. (05/09/2026)
 
 ---
 
@@ -297,6 +379,21 @@ Kết quả thật Dự án B 27/04: 2.177KB → 1.506KB (−31%), FCP 926ms →
     hứng ra file rồi mới đọc (`cmd > out.txt 2>&1; echo $?`), hoặc `${PIPESTATUS[0]}`. Cùng họ
     với bẫy này: `head`/`grep` cắt output tạo vùng mù, và `-ErrorAction SilentlyContinue` giấu
     lỗi nhưng vẫn đổi mã thoát. **Trước khi tin một mã thoát, hỏi: mã này của lệnh nào?**
+11. **Deploy không phải phép chẩn đoán, và "đọc lại chính cái mình vừa bấm" đẻ ra giả thuyết sai.**
+    Điều tra "ẩn hàng hết": phép đo đầu là bấm tick → Lưu → chờ 2,5s → đọc `checkbox.checked` ra `true`
+    → kết luận "đã lưu". Cái `true` đó chính là cú bấm của mình còn nằm trong DOM cũ, trang chưa tải lại.
+    Từ phép đo mù đó đẻ ra **ba giả thuyết đều sai** và **hai gói deploy** (1.24.45, 1.24.46) chữa một
+    lỗi không tồn tại — sự thật chỉ là công tắc native của WooCommerce đang TẮT. Đọc DOM sau khi tự thao
+    tác thì phải tải lại trang từ server trước khi đo. (10/09/2026)
+12. **"Không thấy ở trang 1" không phân biệt được "đã lọc" với "chưa tới lượt".** Kiểm ẩn hàng hết trên
+    một danh sách sắp theo "Mới nhất" — trang 1 vốn không có hàng hết nên suýt kết luận ngược; mở **trang
+    12** mới thấy `outofstock` còn nguyên. Khi đo trên một danh sách đang sắp xếp, xác định trang chứa
+    ca cần tìm trước khi kết luận. (10/09/2026)
+13. **Ngưỡng phép soát phải hiệu chuẩn trên FILE THẬT, và một luật cài hai nơi sẽ lệch một ca.** Kế
+    hoạch chốt cứng "vắng mặt > 40 mã thì chặn"; file bảng giá thật vắng 56/286 (80% phủ) → ngưỡng cứng
+    chặn nhầm chính file cần nhập. Cùng đó, bản `chuanGia` chép sang Python lệch với JS thật **đúng một
+    ca** ("180.000-200.000" ra rỗng ở Python, ra 180 ở JS) → mọi kết luận về cách đọc số phải lấy từ hàm
+    thật, bản chép chỉ để đếm. (10/09/2026)
 
 ---
 
@@ -356,6 +453,23 @@ phiên, tin lời phiên bạn là đường ngắn nhất để một điều s
 một công cụ "không chạy được", hãy chạy thử nó** — vắng mặt ở chỗ mình tìm không phải là bằng
 chứng vắng mặt. Và **cổng hỏng kiểu fail-closed thì đỡ nguy hơn cổng hỏng kiểu im lặng**: cái
 đáng sợ là lệnh chạy trần rồi có người đọc mã thoát khác 0 thành "chắc nó bỏ qua".
+
+**Ba chốt nữa đo được cùng đợt (05/09/2026), đều im lặng cho tới khi dựng ca dương:**
+
+- **Tag cứu hộ phải là tag CÓ CHÚ THÍCH (`git tag -a`).** `push.followTags` **chỉ đẩy tag có chú
+  thích**; tag trần bị bỏ qua lặng lẽ. Đo được cả 9 tag `cuu-ho/` hiện có đều là tag trần, lên được
+  GitHub chỉ nhờ một lệnh `git push --tags` gõ tay. Tag cứu hộ không rời khỏi máy thì đúng lúc cần lùi
+  là lúc không còn gì để lùi; chú thích cũng là chỗ ghi **vì sao** đóng băng — thứ tên tag không nói được.
+- **Hàng rào chặn-ghi đa phiên (PreToolUse hook) có ba lỗ, cả ba chỉ lộ khi DỰNG CA DƯƠNG:** (a) **Bash
+  được miễn toàn bộ luật** — cùng một đường dẫn, `Write` thì chặn còn `cat >` / `sed -i` / `python` thì
+  lọt, mà chế độ auto lại **khuyến khích sửa file bằng Bash**, tức hàng rào mở đúng cái cổng hay đi nhất;
+  (b) **hai cuốn sổ điều phối không biết nhau** — hook đọc sổ riêng, skill ghi `.git/wp-deploy/state.json`,
+  nên phiên làm ĐÚNG skill lại là phiên hook không nhìn thấy; (c) **git pathspec phân biệt hoa/thường
+  trên Windows** — `-- CLAUDE.md` trả ` M CLAUDE.md`, `-- claude.md` trả **rỗng**, nên một luật chuẩn hoá
+  chữ thường sẽ báo "sạch" mãi mãi (sửa bằng `:(icase)`). "Không chặn gì" trông y hệt "không có gì để
+  chặn" — chỉ ca dương mới tách được. Và khi siết luật cũng dính **hai dương tính giả**, đều chặn nhầm
+  lệnh chỉ đọc (`->` trong `echo` bị đọc thành `>`; chuỗi `functions.php` khớp `\bphp\b` nên `cat <file>`
+  bị coi là gọi trình thông dịch PHP) → bộ ca phải có **cả ca phải cho qua**, không chỉ ca phải chặn.
 
 ## N. KIỂM TRA NHANH TRƯỚC KHI ĐỘNG VÀO MỘT SITE
 

@@ -5,6 +5,47 @@ và định dạng output còn có thể đổi.
 
 ---
 
+## [0.5.0] — 2026-09-12
+
+Đúc kết một tuần làm việc dày trên một site WooCommerce thật (05–12/09) vào kho kiến thức
+và skill `wp-delivery`. Mọi bài học gắn với một commit / con số đã trả giá; tên site và
+định danh đã ẩn danh như phần còn lại của repo.
+
+### Thêm — bài học mới trong `docs/KINH-NGHIEM-WORDPRESS.md`
+
+Rải vào các nhóm D, E, F, G, H, K, L, M:
+
+- **WooCommerce lõi** — công tắc "ẩn hàng hết" lọc bằng thẻ `outofstock` có thể chưa gán
+  (lọc bằng `_stock_status`); đếm danh mục bằng `wc_get_products` xoá bài toán cha+con gấp
+  đôi; mô tả sản phẩm thường không đi qua `the_content()` → bám `woocommerce_product_get_description`.
+- **Khoá transient phải bám version theme** — DOC/GHI/XOÁ cùng một khoá, nếu không bề mặt
+  lệch âm thầm sau đợt chỉ đổi cách tính.
+- **CSS** — đè bằng lớp phạm vi phải khai lại MỌI thuộc tính (thắng specificity chưa đủ);
+  màn cực hẹp 280–330px phải đo trên site thật, "phần tử vượt viewport" không bắt được chữ
+  cắt trong nút.
+- **Đổi slug trang là migration** — không có auto-redirect, phải tự 301.
+- **Làm tròn giá ở cửa đọc phía khách**, không ở getter dùng chung với lúc lưu; tròn đơn giá
+  trước khi nhân số lượng.
+- **Nhập dữ liệu hàng loạt** — ô trống ≠ xoá; đọc mọi hàng tiêu đề + ánh xạ cột do người
+  nhập chốt; "0đ" = miễn phí; ngưỡng phép soát hiệu chuẩn trên file thật.
+- **Kỷ luật đo** — "đọc lại chính cái mình vừa bấm" đẻ ra giả thuyết sai và deploy thừa
+  (deploy không phải phép chẩn đoán); danh sách đang sắp xếp; công cụ quản trị nội bộ ba trụ.
+- **Đa phiên** — tag cứu hộ phải có chú thích (`git tag -a`) mới được `push.followTags` đẩy;
+  ba lỗ hook gác cổng chỉ lộ khi dựng ca dương; bản tải FTP thiếu thư mục → git tưởng xoá file.
+
+### Thêm — skill `wp-delivery`
+
+- Mục **"Nhiều worktree cùng deploy"**: sổ chiếm chỗ dùng chung qua `.git`, cổng deploy tám
+  phép kiểm (ca banner "file sống trên host mà `main` không có"), và bài học "đo nhầm câu hỏi".
+- Hai script **`wp_deploy_gate.py`** và **`wp_lock.py`** (genericize từ bản dùng thật): cổng
+  deploy liên worktree + sổ chiếm chỗ/nhật ký. Version-constant dò theo mẫu `*_THEME_VERSION`,
+  không gắn cứng một theme.
+- Các bài học vận hành mới rải vào "Kiểm đúng runtime state", "Giữ pipeline WordPress", "Sửa
+  dữ liệu hàng loạt", "Một luật nghiệp vụ nhiều bề mặt", "Kiểm nối asset", "Môi trường thử",
+  "Đổi schema/meta/option".
+
+---
+
 ## [0.4.0] — 2026-09-05
 
 Thêm một phép kiểm mà cả ba tầng cũ đều mù, sau khi một phiên khác báo về đúng loại
