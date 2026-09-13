@@ -119,8 +119,9 @@ blocklist tiếng Anh va với âm tiết Việt (`--tien-to`); `'required' => f
 giải thích regex bị đọc như key; và mã lý do in trong chuỗi dài (`print("KHONG_KIEM_DUOC: …")`)
 **chưa bao giờ được quét** vì regex đòi cả chuỗi chỉ là mã.
 
-Nợ cũ: `wp-delivery` **34 tên tiếng Anh** khoanh trong `tests/ten-baseline.json`, ratchet —
-không được tăng, giảm thì phải `--cap-nhat`.
+Nợ cũ: `wp-delivery` **48 tên tiếng Anh** (34 trong 4 script có sẵn + 14 trong `wp_deploy_gate.py`,
+`wp_lock.py` vừa đưa từ local vào) khoanh trong `tests/ten-baseline.json`, ratchet — không được
+tăng, giảm thì phải `--cap-nhat`.
 
 ### Đổi tên — breaking change theo luật mới (schema chưa từng phát hành, cùng bản 0.5.0)
 
@@ -147,6 +148,11 @@ file chưa được tạo trên máy — chính nó in "tên khách/tên site CH
 bắt ngay một domain khách và một hàm mang tiền tố site (`<site>_convert_to_webp`) nằm trong
 skill dùng chung của repo public (mùi "bất động", CLAUDE.md §7). Giới hạn: danh sách là của từng máy,
 CI chỉ kiểm mẫu chung.
+
+Đưa vào repo hai script chỉ có ở local mà `SKILL.md` đã tham chiếu 8 lần: `wp_deploy_gate.py`
+(cổng deploy liên worktree — 3 ca thật 05/09: 287 dòng chưa commit suýt bị xoá trắng, tính năng
+tắt im lặng vì thiếu `require`, hai phiên cùng đặt một version) và `wp_lock.py` (sổ chiếm chỗ
+dùng chung qua `.git` cho 13 worktree cùng trỏ một site).
 
 Luật rút ra (CLAUDE.md §7.5): **một nguồn** — skill sống trong repo, cài ra local, không sửa
 bản cài. Ba bản chép của cùng tài liệu đã lệch tới mức repo dạy công thức sai.
