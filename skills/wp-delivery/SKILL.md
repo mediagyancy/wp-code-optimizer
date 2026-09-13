@@ -1,5 +1,6 @@
 ---
 name: wp-delivery
+version: 0.6.0
 description: |
   Quy trình sửa code, kiểm thử và đưa thay đổi lên site WordPress an toàn.
   Dùng khi sửa theme/child theme/plugin/functions.php, CSS/JS/template, luồng WooCommerce,

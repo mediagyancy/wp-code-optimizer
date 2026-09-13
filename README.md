@@ -53,12 +53,25 @@ Every script in this repo refuses to write until its own calibration case fails 
 
 ## Install
 
-Skills live in `~/.claude/skills/`. Clone and symlink, or copy:
+Skills live in `~/.claude/skills/`. Clone once, then let `install.py` copy — it is the only
+supported path, because a bare `cp -r` leaves renamed scripts behind and never tells you
+what changed:
 
 ```bash
 git clone https://github.com/mediagyancy/wp-code-optimizer.git
-cp -r wp-code-optimizer/skills/* ~/.claude/skills/
+python wp-code-optimizer/install.py --write
 ```
+
+**Updating later** — pull and reinstall in one step; the dry run (no `--write`) shows what
+would change and lists every BREAKING line from the CHANGELOG between your installed version
+and the new one:
+
+```bash
+python wp-code-optimizer/install.py --pull --write
+```
+
+Files that exist only locally (your `sites/*.json`, `_backup/`) are never touched. The
+installed version is recorded in `~/.claude/skills/.wp-code-optimizer.version`.
 
 Then in Claude Code: `/wp-delivery`, `/wp-code-cleaner`, `/code-optimize`, `/wp-preview-builder`,
 `/wp-code-cheatsheet`, `/wp-corewebvital`.
@@ -77,6 +90,7 @@ python tests/test_clean_gate.py  # 19 — the /code-optimize entry gate, both di
 python tests/test_rename.py      # 19 — safe rename: word boundary, collision, byte-exact restore
 python tests/check_names.py      # naming rule (CLAUDE.md §1) + docs/REFERENCE.md coverage, ratcheted
 python tests/test_cheatsheet.py  # 30 — generated cheatsheet matches the code, both directions
+python tests/test_install.py     # 14 — installer: one-way repo → local, keeps local-only files
 
 # integration: downloads WordPress + WooCommerce, runs them, compares
 python tests/integration/dung_wp.py --ra .wp-it
@@ -262,10 +276,23 @@ Mọi script trong repo này đều **từ chối ghi** cho tới khi ca hiệu 
 
 ## Cài
 
+Clone một lần, rồi để `install.py` chép — đây là đường cài duy nhất được hỗ trợ, vì `cp -r`
+tay để lại script tên cũ và không bao giờ nói cho anh biết cái gì đã đổi:
+
 ```bash
 git clone https://github.com/mediagyancy/wp-code-optimizer.git
-cp -r wp-code-optimizer/skills/* ~/.claude/skills/
+python wp-code-optimizer/install.py --write
 ```
+
+**Cập nhật về sau** — kéo repo mới nhất rồi cài lại trong một lệnh; chạy thử (không `--write`)
+in ra sẽ đổi gì và liệt kê mọi dòng BREAKING trong CHANGELOG giữa bản đang cài và bản mới:
+
+```bash
+python wp-code-optimizer/install.py --pull --write
+```
+
+File chỉ có ở local (`sites/*.json`, `_backup/`) không bao giờ bị đụng. Bản đã cài ghi ở
+`~/.claude/skills/.wp-code-optimizer.version`.
 
 Rồi gọi `/wp-delivery`, `/wp-code-cleaner`, `/code-optimize`, `/wp-preview-builder`,
 `/wp-code-cheatsheet`, `/wp-corewebvital`. Claude cũng tự nhận ra khi
@@ -282,6 +309,7 @@ python tests/test_clean_gate.py  # 19 — cổng vào của /code-optimize, hai 
 python tests/test_rename.py      # 19 — đổi tên an toàn: ranh giới từ, va chạm, phục hồi từng byte
 python tests/check_names.py      # luật đặt tên (CLAUDE.md §1) + độ phủ docs/REFERENCE.md, ratchet
 python tests/test_cheatsheet.py  # 30 — cheatsheet sinh ra khớp code, hai chiều
+python tests/test_install.py     # 14 — cài một chiều repo → local, giữ file chỉ có ở local
 
 # integration: tự tải WordPress + WooCommerce, chạy thật rồi so kết quả
 python tests/integration/dung_wp.py --ra .wp-it

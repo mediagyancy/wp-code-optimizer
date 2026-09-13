@@ -1,5 +1,6 @@
 ---
 name: wp-code-cheatsheet
+version: 0.6.0
 description: >-
   Sinh CHEATSHEET (bảng tra kiểu Liquid của Haravan) cho bất kỳ dự án nào — theme, plugin
   WordPress hay repo script — từ chính code: hàm và chữ ký, hook dự án tự phát, callback đã

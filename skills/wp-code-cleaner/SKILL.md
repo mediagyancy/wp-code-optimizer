@@ -1,5 +1,6 @@
 ---
 name: wp-code-cleaner
+version: 0.6.0
 description: >-
   Soát và dọn code chết trong theme/plugin WordPress một cách CHỨNG MINH ĐƯỢC — tìm file
   mồ côi, hàm không ai gọi, CSS/JS không còn markup nào dùng, màn hình cài đặt không điều

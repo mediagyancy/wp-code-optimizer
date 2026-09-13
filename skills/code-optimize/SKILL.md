@@ -1,5 +1,6 @@
 ---
 name: code-optimize
+version: 0.6.0
 description: >-
   Tối ưu và tái cấu trúc code theme/plugin WordPress SAU KHI đã dọn code chết — dựng code
   nodes và bản đồ kiến trúc, đối chứng với WordPress đang chạy, áp checklist kiến trúc, rồi

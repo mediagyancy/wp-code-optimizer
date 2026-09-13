@@ -33,6 +33,9 @@ tố có nghĩa cố định, và một bảng tra được bằng mắt cho m�
 
 **Bảng tham chiếu `docs/REFERENCE.md` phải phủ MỌI tên** của lane mới — linter đỏ khi thiếu.
 
+**Phiên bản**: `VERSION` ở gốc repo là nguồn duy nhất; mọi `SKILL.md` mang `version:` khớp nó
+(`test_install.py` chốt). Cài và cập nhật local **chỉ qua `install.py`** — không `cp -r` tay.
+
 **Nợ cũ**: tên tiếng Việt của skill cũ (`quet_chet.py`, `--tien-to`, `KHONG_KIEM_DUOC`…) khoanh
 trong `tests/names-baseline.json`. Ratchet: nợ **không được tăng**; trả nợ thì `--update`.
 
@@ -122,7 +125,7 @@ Từ bản tóm tắt Clean Code (viblo). Chỉ liệt kê những mục repo **
 ## Trước khi commit
 
 ```
-python tests/chay_test.py · test_preview.py · test_backup.py · test_clean_gate.py · test_rename.py · test_cheatsheet.py
+python tests/chay_test.py · test_preview.py · test_backup.py · test_clean_gate.py · test_rename.py · test_cheatsheet.py · test_install.py
 python tests/kiem_rieng_tu.py
 python tests/check_names.py
 ```
