@@ -134,6 +134,23 @@ không được tăng, giảm thì phải `--cap-nhat`.
 | mặt `chuky` · `sanit` | `chu_ky` · `sanitise` | Tầng 5 |
 | `PROBE_VERSION` | `PHIEN_BAN_PROBE` | `probe.js` |
 
+### Hợp nhất hai chiều — bản cài local `~/.claude/skills` có bài học repo chưa có
+
+`wp-delivery/SKILL.md` local **+233 dòng** (sửa 12/09), `wp-corewebvital/SKILL.md` local
+**+174 dòng** (2.1.0, sửa 09/09) — công sức thật chỉ tồn tại trên một máy. Ngược lại repo có
+cảnh báo preset LSCWP 7.8.1 mà local không có. Hợp nhất: local làm gốc, ẩn danh theo đúng
+bảng đối chiếu (tên theme thật → `mytheme`/`theme-b`, tên site thật → Dự án A/B/C,
+đường dẫn máy → "ghi chép nội bộ"), trả lại phần repo-only, chốt riêng tư phải ra 0.
+
+Chốt riêng tư trước đó **mù về tên site**: cơ chế `tests/rieng-tu.local.txt` có sẵn nhưng
+file chưa được tạo trên máy — chính nó in "tên khách/tên site CHƯA ĐƯỢC KIỂM". Tạo xong, nó
+bắt ngay một domain khách và một hàm mang tiền tố site (`<site>_convert_to_webp`) nằm trong
+skill dùng chung của repo public (mùi "bất động", CLAUDE.md §7). Giới hạn: danh sách là của từng máy,
+CI chỉ kiểm mẫu chung.
+
+Luật rút ra (CLAUDE.md §7.5): **một nguồn** — skill sống trong repo, cài ra local, không sửa
+bản cài. Ba bản chép của cùng tài liệu đã lệch tới mức repo dạy công thức sai.
+
 ### Thêm — `doi_ten.py`: đổi tên chỉ qua đây, không `sed`
 
 Replace thẳng hỏng **im lặng** theo ba cách: khớp chuỗi con (`so` → đụng `so_file`), va chạm

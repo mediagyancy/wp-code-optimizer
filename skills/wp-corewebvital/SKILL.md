@@ -1,12 +1,14 @@
 ---
 name: wp-corewebvital
 preamble-tier: 3
-version: 2.0.0
+version: 2.1.0
 description: |
   Core Web Vitals optimization for WordPress sites on LiteSpeed server with LiteSpeed Cache plugin.
   Ưu tiên an toàn: chỉ dùng setting rollback được và KHÔNG phụ thuộc dịch vụ bên thứ ba (QUIC.cloud, Cloudflare CDN, online image opt).
   7-phase workflow: audit → LiteSpeed safe preset → plugin dequeue → image WebP self-host → CSS/JS optimize → font self-host → verify.
-  Based on real sprint results: trên một site sản xuất thật: -31% page weight, FCP -56%, toàn bộ CWV đạt.
+  v2.1.0: đo lab tại chỗ bằng chrome-devtools MCP (LCP/CLS/LCP-breakdown + insight có estimated savings,
+  page weight trên cache nguội, quét lỗi console) thay cho việc bảo người dùng tự mở PageSpeed.
+  Based on real sprint results: Dự án B -31% page weight, FCP -56%, all CWV pass.
   Use when asked to "optimize core web vitals", "tối ưu CWV", "speed up WordPress", "tune LiteSpeed", "fix PageSpeed score".
 voice-triggers:
   - core web vitals
@@ -29,11 +31,24 @@ allowed-tools:
   - AskUserQuestion
   - WebSearch
   - WebFetch
+  # Đo lab tại chỗ (từ v2.1.0) — thiếu nhóm này thì Step 0.3 không chạy được
+  - mcp__chrome-devtools__new_page
+  - mcp__chrome-devtools__navigate_page
+  - mcp__chrome-devtools__close_page
+  - mcp__chrome-devtools__list_pages
+  - mcp__chrome-devtools__emulate
+  - mcp__chrome-devtools__performance_start_trace
+  - mcp__chrome-devtools__performance_stop_trace
+  - mcp__chrome-devtools__performance_analyze_insight
+  - mcp__chrome-devtools__list_network_requests
+  - mcp__chrome-devtools__list_console_messages
+  - mcp__chrome-devtools__evaluate_script
+  - mcp__chrome-devtools__take_screenshot
 ---
 
 # CWV-WP: Core Web Vitals Optimization for WordPress + LiteSpeed
 
-> **Proven results:** một sprint thật trên site sản xuất — 2177KB → 1506KB (-31%), FCP 926ms → 410ms (-56%), all CrUX field metrics PASS.
+> **Proven results:** Dự án B sprint 2026-04-27 — 2177KB → 1506KB (-31%), FCP 926ms → 410ms (-56%), all CrUX field metrics PASS.
 
 > **Ưu tiên an toàn:** Mọi optimization phải rollback được. KHÔNG bao giờ enable setting có thể break inline JS, FOUC, CLS regression, hay cache poisoning. KHÔNG dùng dịch vụ bên thứ 3 (QUIC.cloud, Cloudflare CDN, online CCSS/UCSS service).
 
@@ -60,7 +75,7 @@ allowed-tools:
 
 1. **SAFE-first, không nguy hiểm.** Không bao giờ enable: `optm-css_async`, `optm-js_defer ≥ 1`, `optm-qs_rm`, `optm-ggfonts_rm` (trừ khi đã self-host fonts), `optm-html_min`, `util-instant_click` (đặc biệt với WooCommerce), `media-placeholder_resp`. Mọi setting này có thể break site theo cách khó debug.
 2. **KHÔNG dịch vụ bên thứ 3.** Không dùng QUIC.cloud (UCSS, CCSS, VPI, Image Opt), Cloudflare CDN, online image services. Tất cả tối ưu phải self-host hoặc native.
-3. **Field data first, lab score second.** CrUX p75 metrics (LCP, INP, CLS, TTFB) là cái Google rank. PSI lab scores vary ±20 points giữa các run — KHÔNG chase single-run lab numbers.
+3. **Field data first, lab score second — nhưng lab phải là lab TÁI LẬP ĐƯỢC.** CrUX p75 (LCP, INP, CLS, TTFB) mới là cái Google rank. Điểm PSI dao động ±20 mỗi run nên đừng chase. Từ v2.1.0, lab được đo bằng `performance_start_trace` với throttle **cố định** (mobile 412×915, CPU 4x, Slow 4G) — ổn định hơn PSI nhiều và so trước/sau được, nhưng vẫn là lab: nó **không** thay thế field data để kết luận thắng thua.
 4. **Audit before code.** Chạy Day 0 protocol đủ. Discover ALL instances của một pattern trước khi fix bất kỳ. Batch deploys.
 5. **Confirm with user before deploying.** Present ROI-ranked optimization list. User pick scope.
 6. **Don't break tracking (Google Ads), forms (CF7), WooCommerce, or SEO.** Hard constraints.
@@ -95,9 +110,112 @@ curl -s "$URL" -o /tmp/cwv-audit.html
 wc -c < /tmp/cwv-audit.html
 ```
 
-### Step 0.3 — CrUX field data baseline
+### Step 0.3 — Đo lab TẠI CHỖ bằng chrome-devtools MCP (không phải mở PageSpeed bằng tay)
 
-Open `https://pagespeed.web.dev/analysis?url=$URL` → section **"Discover what your real users are experiencing"**.
+> Từ v2.1.0. Trước đây bước này bảo người dùng tự mở `pagespeed.web.dev` rồi đọc hộ —
+> Claude không có số nào của riêng mình, không lặp lại được, không so được trước/sau.
+> MCP `chrome-devtools` (đã cấu hình sẵn trong `~/.claude.json`) cho đo thẳng.
+
+**Thứ tự bắt buộc — sai thứ tự là số vô nghĩa:**
+
+```
+1. new_page   { url: "<URL>" }                          → lấy pageId
+2. emulate    { pageId, viewport: "412x915x2.625,mobile,touch",
+                cpuThrottlingRate: 4, networkConditions: "Slow 4G" }
+3. performance_start_trace { pageId, reload: true, autoStop: true }
+4. performance_analyze_insight { pageId, insightSetId: "NAVIGATION_0",
+                                 insightName: "<tên từ danh sách trả về ở bước 3>" }
+```
+
+`emulate` phải chạy **trước** trace. `reload: true` để trace bắt được cả quá trình tải.
+Bỏ throttle thì đo trên máy dev mạnh + cáp quang, ra số đẹp không liên quan gì tới điện
+thoại của khách.
+
+Bước 3 trả về thẳng: `LCP`, **LCP breakdown** (TTFB / render delay), `CLS`, danh sách insight
+kèm **estimated savings**, và một dòng quan trọng: `Metrics (field / real users)` — nếu trang
+có trong CrUX thì field data hiện ngay ở đây, khỏi mở PageSpeed.
+
+Ca thật (du-an-b.example, 09/09/2026, mobile 4x CPU + Slow 4G):
+
+```
+LCP: 2530 ms   ← LCP breakdown: TTFB 661 ms + Render delay 1869 ms
+CLS: 0.00
+Metrics (field / real users): n/a – no data for this page in CrUX
+DocumentLatency → estimated savings: FCP 559 ms, LCP 559 ms
+  · The request was not redirected: PASSED
+  · Server responded quickly: FAILED     ← 661 ms > ngưỡng 600 ms
+  · Compression was applied: PASSED      (content-encoding: br, protocol h3)
+LCP element: H1.du-an-b-hero-title — là CHỮ, không tải từ mạng
+```
+
+**Đọc ca này cho đúng, vì nó dạy cách chọn phase:** LCP element là **text**, nên tối ưu ảnh
+(Phase 3) *không* kéo LCP xuống được. 1869 ms render delay mới là chỗ mất, tức Phase 1 (TTFB)
+và Phase 4 (CSS chặn render) mới là hai phase đáng làm. Không có bước đo này thì rất dễ đổ
+công vào Phase 3 rồi tự hỏi vì sao số không nhúc nhích.
+
+**Bốn cái bẫy đã trả giá, phải biết trước khi tin số:**
+
+| Bẫy | Sự thật đo được | Làm gì |
+|---|---|---|
+| `lighthouse_audit` tưởng có điểm performance | Mô tả tool ghi rõ **"This excludes performance"** — nó chỉ có a11y/SEO/best-practices | Muốn CWV thì dùng `performance_start_trace`, không dùng `lighthouse_audit` |
+| Đo page weight bằng `transferSize` | Trên tab đã ghé qua: **57/60 resource có `transferSize = 0`**, `deliveryType: cache` 43 cái → tổng ra **4 KB**, sai hoàn toàn | Đo trên tab **cache nguội** (xem 0.3b) |
+| Cộng `transferSize` của bên thứ ba | Cross-origin không gửi `Timing-Allow-Origin` thì mọi trường size = 0. Ca Dự án B: 16–17 resource ngoài vẫn bằng 0 dù đã tải nguội | Báo cáo dạng "≥ X KB, còn N resource bên thứ ba không đo được từ JS" — đừng gộp im lặng |
+| Kiểm `x-litespeed-cache` qua MCP | MCP **che giá trị header**: hiện `x-litespeed-cache: <redacted>` | Cache hit vẫn phải kiểm bằng `curl -sI` (Phase 1.5) |
+
+### Step 0.3b — Page weight bằng số thật (cache nguội)
+
+`new_page` với `isolatedContext` cho một context sạch, **cache rỗng** — đây là điều kiện
+duy nhất khiến `transferSize` có nghĩa.
+
+```
+new_page { url: "<URL>", isolatedContext: "cwv-cold", background: true }
+```
+
+rồi `evaluate_script` với:
+
+```js
+() => {
+  const r = performance.getEntriesByType("resource");
+  const nav = performance.getEntriesByType("navigation")[0];
+  const host = location.host;
+  const sum = (a, k) => Math.round(a.reduce((s, e) => s + (e[k] || 0), 0) / 1024);
+  const same = r.filter(e => new URL(e.name).host === host);
+  const cross = r.filter(e => new URL(e.name).host !== host);
+  const delivery = {};
+  for (const e of r) { const d = e.deliveryType || "(network)"; delivery[d] = (delivery[d] || 0) + 1; }
+  return {
+    tong_request: r.length + 1,
+    docKB: Math.round((nav?.transferSize || 0) / 1024),
+    cung_host: { n: same.length, transferKB: sum(same, "transferSize") },
+    khac_host: { n: cross.length, transferKB: sum(cross, "transferSize"),
+                 khong_do_duoc: cross.filter(e => !e.transferSize).length },
+    deliveryType: delivery,           // phải là {"(network)": N} — có "cache" là số hỏng
+    tenMienNgoai: [...new Set(r.map(e => new URL(e.name).host))].filter(h => h !== host)
+  };
+}
+```
+
+**Đọc `deliveryType` TRƯỚC mọi con số khác.** Thấy `cache` xuất hiện là phép đo hỏng, phải
+mở context mới. Ca Dự án B cold: `{"(network)": 66}` và `{"(network)": 67}` ở hai lần chạy —
+doc 28 KB + cùng host 644 KB + khác host 38 KB, còn 16–17 resource bên thứ ba không đo được
+→ báo cáo trung thực là **≥ 710 KB**, không phải "710 KB".
+
+**Chạy tối thiểu hai lần.** Phần cùng host rất ổn định (644 KB cả hai lần), nhưng script
+quảng cáo/analytics tải không đều: cùng trang, cùng điều kiện, hai lần cho **9 rồi 11 domain
+ngoài**. Chênh lệch bên thứ ba giữa trước/sau sprint mà nhỏ hơn biên độ này thì là nhiễu,
+không phải cải thiện.
+
+`tenMienNgoai` thay luôn cho `grep` HTML ở Step 0.4: nó bắt được cả domain do JS chèn động,
+thứ mà grep trên HTML thô không thấy. Ca Dự án B có `use.fontawesome.com` (Phase 5/6 xử lý),
+cụm Google Ads/Analytics (giữ, theo Phase 6.1), và vài domain khác — trong đó
+`traffic2479.com` và `images.dmca.com` không nằm trong bảng phân loại Phase 6.1, tức là
+**bảng đó chưa đủ**: gặp domain lạ thì hỏi người dùng "cái này của ai, dùng làm gì" trước
+khi xếp KEEP hay REMOVE, đừng tự đoán.
+
+### Step 0.3c — CrUX field data (khi trace báo "no data")
+
+Nếu dòng `Metrics (field / real users)` ở bước 3 nói `n/a`, mở
+`https://pagespeed.web.dev/analysis?url=$URL` → section **"Discover what your real users are experiencing"**.
 
 | Metric | Good | Needs improvement | Poor |
 |--------|-----:|------------------:|-----:|
@@ -347,18 +465,18 @@ add_filter('wp_generate_attachment_metadata', function($metadata, $attachment_id
     $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
     if (!in_array($ext, ['jpg', 'jpeg', 'png'])) return $metadata;
     
-    ivn_convert_to_webp($file);
+    mytheme_convert_to_webp($file);
     
     $upload_dir = dirname($file);
     if (!empty($metadata['sizes'])) {
         foreach ($metadata['sizes'] as $size) {
-            ivn_convert_to_webp($upload_dir . '/' . $size['file']);
+            mytheme_convert_to_webp($upload_dir . '/' . $size['file']);
         }
     }
     return $metadata;
 }, 10, 2);
 
-function ivn_convert_to_webp($file_path) {
+function mytheme_convert_to_webp($file_path) {
     if (!file_exists($file_path)) return;
     $webp_path = $file_path . '.webp';
     if (file_exists($webp_path)) return;
@@ -557,6 +675,8 @@ add_action('wp_head', function() {
 
 ### 7.1 — Post-optimization verification
 
+**Phần curl — những thứ MCP không đo được** (giá trị header bị MCP che):
+
 ```bash
 URL="<site-url>"
 
@@ -566,17 +686,45 @@ curl -sI "$URL" | grep -i "x-litespeed-cache"
 echo "=== 2. WEBP SERVING ==="
 curl -sI -H "Accept: image/webp" "$URL/wp-content/uploads/<image>.png" | grep -i content-type
 
-echo "=== 3. PAGE WEIGHT (HTML) ==="
+echo "=== 3. HTML DOC SIZE (chỉ tài liệu, KHÔNG phải page weight) ==="
 curl -s "$URL" -o /tmp/cwv-final.html
 wc -c < /tmp/cwv-final.html
-
-echo "=== 4. EXTERNAL DOMAINS COUNT ==="
-DOMAIN=$(echo "$URL" | grep -oP '://[^/]+' | sed 's|://||')
-grep -oE 'https?://[^"'"'"' ]+' /tmp/cwv-final.html | grep -v "$DOMAIN" | sort -u | wc -l
-
-echo "=== 5. PLUGIN ASSETS COUNT ==="
-grep -oE '/wp-content/plugins/[^/"]+' /tmp/cwv-final.html | sort -u | wc -l
 ```
+
+> Bước 3 chỉ là kích thước **file HTML**. Bảng EXPECTED RESULTS bên dưới nói "page weight
+> 2-3 MB → 1-1.5 MB" — con số đó **không** đo được bằng `wc -c`. Page weight thật lấy từ
+> phần MCP ngay dưới.
+
+**Phần MCP — trước/sau bằng cùng một phép đo.** Chạy lại **nguyên xi** Step 0.3 và 0.3b
+(cùng viewport, cùng `cpuThrottlingRate: 4`, cùng `networkConditions: "Slow 4G"`, cùng
+`isolatedContext` cho phần cân nặng). Khác điều kiện thì hai lần đo không so được với nhau.
+
+Lập bảng đối chiếu:
+
+| Chỉ số | Trước | Sau | Nguồn |
+|---|---|---|---|
+| LCP (lab, mobile throttled) | | | `performance_start_trace` |
+| LCP breakdown: TTFB / render delay | | | trace |
+| CLS | | | trace |
+| Page weight (cold, cùng host) | | | `evaluate_script` trên tab `isolatedContext` |
+| Số resource bên thứ ba không đo được | | | cùng script — **phải ghi ra, đừng giấu** |
+| Số domain ngoài | | | `tenMienNgoai` |
+| Insight có `estimated savings` lớn nhất | | | `performance_analyze_insight` |
+
+**Lỗi JS — bước mới, bắt buộc.** Dequeue ở Phase 2 và 4 là nơi hay làm vỡ script phụ thuộc
+nhau, mà bảng smoke test bằng mắt thì không thấy:
+
+```
+list_console_messages { pageId, types: ["error", "warn"], pageSize: 20 }
+```
+
+Ca thật (du-an-b.example, 09/09/2026): trang chủ đang có `Uncaught ReferenceError: wp is not
+defined` — dấu hiệu điển hình của một script gọi global `wp` (wp-util / wp-i18n) sau khi
+dependency của nó bị gỡ hoặc bị defer. Đây đúng là loại hỏng mà Phase 2/4 gây ra, và bản
+skill trước **không có bước nào bắt được nó**.
+
+So `list_console_messages` trước và sau: lỗi mới xuất hiện = regression do chính sprint này
+gây ra, phải sửa hoặc rollback, không được ghi vào phần "đã biết".
 
 ### 7.2 — Smoke test checklist
 
@@ -587,6 +735,7 @@ grep -oE '/wp-content/plugins/[^/"]+' /tmp/cwv-final.html | sort -u | wc -l
 - [ ] Mobile — responsive layout intact
 - [ ] Language switcher — gtranslate works
 - [ ] Admin panel — WP admin loads normally
+- [ ] **Console sạch** — `list_console_messages` không có lỗi MỚI so với bản trước sprint
 
 ### 7.3 — Theo dõi field data (KHÔNG phải 24–48 giờ)
 
@@ -667,7 +816,7 @@ grep -oE '/wp-content/plugins/[^/"]+' /tmp/cwv-final.html | sort -u | wc -l
 
 ---
 
-## EXPECTED RESULTS (đo trên một site sản xuất thật)
+## EXPECTED RESULTS (based on Dự án B benchmark)
 
 | Metric | Trước | Sau | Improvement |
 |--------|------:|----:|-------------|
@@ -697,12 +846,18 @@ grep -oE '/wp-content/plugins/[^/"]+' /tmp/cwv-final.html | sort -u | wc -l
 12. **❌ `util-instant_click` trên WooCommerce site** → Hover trigger add-to-cart link → cart pollution.
 13. **❌ `optm-html_min` với theme có inline `<script>`** → Strip whitespace có thể vỡ template literals.
 14. **❌ `optm-qs_rm` + `cache-ttl_browser` 1 năm** → User stuck CSS cũ tới 1 năm sau update.
+15. **❌ Đo page weight bằng `transferSize` trên tab đã ghé qua** → cache làm `transferSize = 0`. Đo thật 09/09/2026 trên du-an-b.example: **57/60 resource bằng 0**, tổng ra **4 KB** trong khi trang thật ≥ 710 KB. Luôn đo trên `isolatedContext` và **đọc `deliveryType` trước** — thấy `cache` là số hỏng.
+16. **❌ Gộp im lặng cân nặng bên thứ ba** → cross-origin không có `Timing-Allow-Origin` thì mọi trường size = 0. Ca Dự án B: 16 resource ngoài không đo được ngay cả khi cache nguội. Báo cáo phải ghi "≥ X KB, N resource không đo được", không được làm tròn thành một con số gọn.
+17. **❌ Dùng `lighthouse_audit` để lấy điểm performance** → mô tả tool ghi rõ **"This excludes performance"**. Nó chỉ trả a11y / SEO / best-practices. CWV phải lấy từ `performance_start_trace`.
+18. **❌ Trace mà quên `emulate` trước** → đo trên máy dev mạnh + mạng nhanh, LCP đẹp giả. Luôn `emulate` (mobile viewport + CPU 4x + Slow 4G) **trước** khi `performance_start_trace`.
+19. **❌ So trước/sau với điều kiện đo khác nhau** → đổi viewport hoặc mức throttle giữa hai lần đo thì phần trăm cải thiện là số bịa. Ghi lại đúng tham số `emulate` cùng với mỗi lần đo.
+20. **❌ Nghiệm thu sprint mà không xem console** → dequeue ở Phase 2/4 làm vỡ script phụ thuộc, mắt thường không thấy. Ca thật: `Uncaught ReferenceError: wp is not defined` trên trang chủ Dự án B.
 
 ---
 
 ## RELATED FILES
 
-- 📄 Preset khởi điểm: `skills/wp-corewebvital/presets/lscwp-safe-basic.data`
+- 📄 Preset SAFE BASIC: `skills/wp-corewebvital/presets/lscwp-safe-basic.data`
   **Preset này xuất từ LiteSpeed Cache 7.8.1.** Bản LSCWP khác có thể đổi mặc định của
   một số khoá — đáng chú ý là `cache-page_login` (cache trang đăng nhập), trong preset
   này đang BẬT. Sau khi import, mở lại từng nhóm setting đối chiếu với tài liệu của
@@ -710,7 +865,7 @@ grep -oE '/wp-content/plugins/[^/"]+' /tmp/cwv-final.html | sort -u | wc -l
 - 📖 Preset README: `skills/wp-corewebvital/presets/README.md`
 - 🗒️ Dự án B sprint reference: `(báo cáo nội bộ, không kèm trong repo)`
 - 🗒️ Dự án B landscape: `(báo cáo nội bộ, không kèm trong repo)`
-- 🗒️ Day 0 protocol: (quy trình nội bộ, không kèm trong repo)
+- 🗒️ Day 0 protocol: `(báo cáo nội bộ, không kèm trong repo)`
 
 ---
 

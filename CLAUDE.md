@@ -79,6 +79,47 @@ Bộ integration đã từng xanh **nhờ thứ tự job** (`adn-nen.php` đổi
 Chốt riêng tư từng xanh nhờ job `unit` không dựng `.wp-it` — bảo vệ nhờ tình cờ không phải
 bảo vệ.
 
+## 7. Sáu dạng code KHÔNG được triển khai — và thước nào bắt được
+
+Sáu "mùi thiết kế" kinh điển (Robert C. Martin). Theo tinh thần §3, mỗi dạng phải trỏ vào
+một phép kiểm **đang chạy** trong repo, hoặc ghi thẳng là chưa có thước — không được là
+khẩu hiệu.
+
+| Dạng | Biểu hiện | Thước trong repo | Trạng thái |
+|---|---|---|---|
+| 1. **Cứng nhắc** | một thay đổi nhỏ kéo theo một loạt thay đổi | `doi_ten.py` **in ra số file và số chỗ** phải đụng cho MỘT khái niệm — đó là số đo cứng nhắc; `graph.canh` cho fan-in của từng node | có số đo, **chưa có ngưỡng chặn** |
+| 2. **Mong manh** | sửa một chỗ, hỏng nhiều chỗ | **Tầng 5**: sửa một chỗ rồi đo bảy mặt runtime; 6 ca tiêm là 6 kiểu "một chỗ" | có chốt, đã hiệu chuẩn |
+| 3. **Bất động** | không tái dùng được ở dự án khác | tên site / đường dẫn máy trong **skill dùng chung**: `kiem_rieng_tu.py` + `tests/rieng-tu.local.txt`. Ca thật 13/09: `ivn_convert_to_webp` nằm trong `wp-corewebvital` của repo public — hàm của một site trong skill của mọi site | có chốt; **danh sách tên là của từng máy** (gitignored) nên CI chỉ kiểm mẫu chung — giới hạn phải biết |
+| 4. **Phức tạp không cần thiết** | | `wp_module_size.py`: `functions.php` ≤ 80 LOC thực thi, baseline ratchet cho file cũ; checklist B1 | có chốt cho kích thước; **chưa có** thước độ phức tạp hàm |
+| 5. **Lặp lại không cần thiết** | | Ca thật: **ba bản chép** của cùng tài liệu (workspace / repo / `~/.claude`) lệch nhau tới mức repo public dạy công thức sai. Luật: **một nguồn** — skill sống trong repo, cài ra local, không sửa bản cài; `kiem_ten.py` đòi bảng tham chiếu là nguồn duy nhất cho tên | có luật; **chưa có** thước clone code |
+| 6. **Khó hiểu** | | §1 luật đặt tên · `docs/BANG-THAM-CHIEU.md` · mỗi luật kèm ca hỏng đã trả giá (luật không có lý do là luật người ta lách) | có chốt cho tên; nội dung thì là kỷ luật viết |
+
+## 8. Đối chiếu bộ Clean Code — cái gì đã thành chốt, cái gì chưa
+
+Từ bản tóm tắt Clean Code (viblo). Chỉ liệt kê những mục repo **có lập trường**:
+
+- **Đặt tên có nghĩa · dễ tìm · không nhét kiểu vào tên** → §1, chốt `kiem_ten.py`. Riêng
+  "không tiền tố": repo **có** tiền tố có nghĩa (`so_`, `co_`) — đó là tiền tố ngữ nghĩa,
+  không phải tiền tố kiểu dữ liệu; Haravan cũng vậy (`first_`, `_count`).
+- **Không số trực tiếp, đặt tên cho nó** → `BE_RONG`, `BIEN_TRANG_PX`, `BIEN_PHAN_TU_PX`,
+  `CA_LICH_SU` là hằng có tên kèm lý do. Chưa có chốt tổng quát.
+- **Comment lý do, không comment điều hiển nhiên, xoá code không dùng thay vì comment** →
+  toàn bộ repo viết comment về **vì sao** và **ca hỏng**; code chết là việc của
+  `wp-code-cleaner`. Comment dày ở đây là chủ ý và đúng loại Clean Code cho phép.
+- **Luôn tìm nguyên nhân cốt lõi** → ca lượt-đầu-lạnh: không thêm hook vào danh sách lọc
+  (whack-a-mole) mà thêm lượt làm ấm; chốt `test_integration` đỏ vì thứ tự → sửa bằng
+  `doi_theme.php`, không sửa thứ tự job.
+- **Boy-scout rule** → Fowler *litter-pickup* trong `checklist.md`.
+- **Test độc lập · lặp lại được** → §6: bộ integration từng phụ thuộc thứ tự chạy; nay mỗi
+  bộ tự đặt tiền đề. **"Mỗi test một thứ"**: bộ test của repo là nhiều `kiem()` trong một
+  file — mỗi `kiem()` là một khẳng định có tên, nhưng chúng **không** độc lập với nhau
+  trong cùng file (ca [5] cần ca [3] chạy trước). Đây là đánh đổi có chủ ý để chạy được
+  không cần framework; ghi nhận, không giả vờ là đã đạt.
+- **Không đối số flag** → cờ CLI `--ghi`/`--thu` là giao diện với người, không phải đối số
+  hàm; trong hàm thì `chi_trong_nhay=True` ở `mau()` là một flag arg — nhỏ, chấp nhận.
+- **Đa hình thay if/else · DI · Demeter · value object** → thuộc code OOP; script của repo
+  là thủ tục nhỏ, chưa áp và chưa có nhu cầu. Không giả vờ.
+
 ## Trước khi commit
 
 ```
