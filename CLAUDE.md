@@ -8,40 +8,39 @@ Luật global ở `~/.claude/CLAUDE.md` vẫn áp (Tier 0: số phải truy đư
 trên base lỗi thời, thước phải bắt được ca hỏng đã biết…). File này chỉ thêm luật **của
 riêng repo**.
 
-## 1. Tên là hợp đồng — luật ĐẶT TÊN (cứng, có chốt: `tests/kiem_ten.py`)
+## 1. Tên là hợp đồng — luật ĐẶT TÊN (cứng, có chốt: `tests/check_names.py`)
 
-Mọi tên mà code **phát ra ngoài** — key JSON/dict/array, cờ CLI, mã lý do, exit code — là
-hợp đồng giữa các script, giữa script và người đọc, và giữa repo này với dự án dùng nó.
-Đổi một tên là **breaking change**: phải có dòng CHANGELOG, và phải đi qua `doi_ten.py`.
+Mọi tên mà code **phát ra ngoài** — key JSON/dict/array, cờ CLI, mã lý do, exit code, tên file
+script — là hợp đồng giữa các script, giữa script và người đọc, và giữa repo này với mọi dự án
+WordPress dùng nó. Đổi một tên là **breaking change**: dòng CHANGELOG + đi qua `rename.py`.
 
-Bài học lấy từ bảng tham chiếu Liquid của Haravan (`product.price`, `cart.item_count`,
-`blog.comments_enabled?`, filter `truncate(input, characters)`): **một namespace cho mỗi
-object, tên là danh từ, tiền tố/hậu tố có nghĩa cố định, và một bảng tra được bằng mắt cho
-mọi tên.** Áp vào đây:
+Bài học từ bảng Liquid của Haravan (`product.price`, `cart.item_count`, `blog.articles_count`,
+filter `truncate(input, characters)`): **một namespace cho mỗi object, tên là danh từ ngắn, hậu
+tố có nghĩa cố định, và một bảng tra được bằng mắt cho mọi tên.** Chủ repo chốt 13/09/2026:
 
 | Luật | Đúng | Sai | Vì sao |
 |---|---|---|---|
-| **Một ngôn ngữ: tiếng Việt không dấu**, snake_case | `file_nap_sau_render`, `so_vung_mu` | `dynamic_unresolved`, `STATIC_CHECKS_PASSED` | repo từng nói hai ngôn ngữ, ba quy ước — người đọc phải đoán mỗi tên thuộc "phe" nào |
-| **Danh từ kỹ thuật mượn** chỉ khi repo không có từ Việt đang dùng, và nằm trong allowlist `MUON` của linter | `hook`, `asset`, `handle`, `nonce`, `sha256`, `callback` | `check`, `pass`, `kind`, `size`, `type` | thêm vào allowlist là một quyết định, kèm lý do trong commit; **không** thêm động từ/tính từ |
-| **Đếm = tiền tố `so_`; tổng = tiền tố `tong_`** | `so_file`, `so_hook`, `tong_byte` | `hook_tong_so`, `items_count`, `so_luong_file` | một cách đếm, đọc là biết ngay đó là số đếm |
-| **Object trước, thuộc tính sau — lồng thay vì xếp tiền tố** | `dem.hook_tinh`, `scripts.queue`, `chua_giai.hook_ten_bien` | `so_hook_tinh_static_count` | Haravan: `variant.inventory_quantity`, không phải `variant_inventory_quantity_value` |
-| **Boolean bắt đầu bằng `co_` / `da_` / `la_`** (cho tên mới; tên cũ như `chac_chan`, `bat_buoc` giữ) | `co_loader`, `da_loc_bo_vi_vo_hai`, `la_theme` | `loader_ok`, `valid` | đọc là biết là câu hỏi có/không |
-| **Cờ CLI: kebab-case tiếng Việt**, mặc định là THỬ, ghi thật phải `--ghi` | `--tien-to`, `--so-voi`, `--chap-nhan-mu`, `--ghi` | `--write-baseline`, `--skip-tests`, `--force` | không có `--force` ở đâu trong repo — muốn qua cổng đang đóng thì sửa nguyên nhân hoặc khai tường minh |
-| **Mã lý do: UPPER_SNAKE tiếng Việt, là một MỆNH ĐỀ về trạng thái** | `KHONG_KIEM_DUOC`, `CHUA_CLEAN`, `GRAPH_KHONG_DANG_TIN`, `NOISE_QUA_LON` | `ERROR`, `FAILED`, `OK` | mã phải nói **vì đâu**, không chỉ nói đỏ/xanh |
-| **Thứ tự là dữ liệu thì tài liệu phải nói** — tên không cần hậu tố, nhưng bảng tham chiếu phải ghi "có thứ tự" | `file_nap_sau_render` (bảng ghi: thứ tự nạp thật) | | `hook_theme` có thứ tự trong bucket là toàn bộ lý do Tầng 5 tồn tại |
-| **Bốn nhãn bằng chứng giữ nguyên tiếng Anh** — từ vựng có trước luật này | `CONCEPT_PREVIEW` `VISUAL_PASS` `PRODUCTION_VERIFIED` `NOT_TESTED` | | đổi chúng là đổi ngôn ngữ chung của ba site đã dùng |
+| **Tiếng Anh chuẩn quốc tế**, snake_case | `files_after_render`, `blind_spot_count` | `file_nap_sau_render`, `so_vung_mu` | repo là chuẩn cho các dự án WP; người đọc, tool, và tài liệu WordPress đều nói tiếng Anh. Bản nháp tiếng Việt đã bị bác |
+| **Mỗi cụm phải mang nghĩa** — cấm từ đệm | `theme_hooks`, `fire_sequence` | `hook_data`, `tmp_info`, `misc_obj` | `data`/`info`/`tmp`/`obj`/`helper`/`util` không nói gì về nội dung |
+| **Cấm tên quá dài**: ≤ 4 cụm, ≤ 24 ký tự | `ignored_count` | `number_of_elements_filtered_as_harmless` | tên dài là mô tả nhét vào định danh; mô tả để ở bảng tham chiếu |
+| **Đếm = hậu tố `_count`; tổng = tiền tố `total_`** | `file_count`, `hook_count`, `total_bytes` | `num_files`, `number_of_hooks`, `so_file` | đúng Haravan: `articles_count`, `products_count` |
+| **Object trước, thuộc tính sau — lồng** | `counts.static_hooks`, `scripts.queue`, `unresolved.dynamic_hook` | `static_hooks_count_value` | `variant.inventory_quantity`, không phải `variant_inventory_quantity_value` |
+| **Boolean: `is_` / `has_` / `can_`** (tên mới) | `has_loader`, `is_certain` | `loader_ok`, `valid` | đọc là biết đó là câu hỏi có/không |
+| **Cờ CLI: kebab-case**, mặc định THỬ, ghi thật phải `--write` | `--prefix`, `--against`, `--accept-blind`, `--write` | `--force` | không có `--force` ở đâu trong repo — cổng đóng thì sửa nguyên nhân hoặc khai tường minh |
+| **Mã lý do: UPPER_SNAKE, một MỆNH ĐỀ về trạng thái** | `NOT_CHECKABLE`, `NOT_CLEAN`, `GRAPH_UNTRUSTED`, `NOISE_TOO_HIGH` | `ERROR`, `FAILED`, `OK` | mã phải nói **vì đâu** |
+| **Thứ tự là dữ liệu thì tài liệu phải nói** | `files_after_render` (bảng ghi: thứ tự nạp thật) | | `theme_hooks` có thứ tự trong bucket là toàn bộ lý do Tầng 5 tồn tại |
+| **Bốn nhãn bằng chứng giữ nguyên** | `CONCEPT_PREVIEW` `VISUAL_PASS` `PRODUCTION_VERIFIED` `NOT_TESTED` | | từ vựng có trước luật |
 
-**Bảng tham chiếu `docs/BANG-THAM-CHIEU.md` phải phủ MỌI tên** của lane mới — linter đỏ khi
-thiếu. Bảng thiếu tên là bảng chết dần; bảng của Haravan chỉ có giá trị vì nó đầy đủ.
+**Bảng tham chiếu `docs/REFERENCE.md` phải phủ MỌI tên** của lane mới — linter đỏ khi thiếu.
 
-**Nợ cũ**: `wp-delivery` có 34 tên tiếng Anh, khoanh trong `tests/ten-baseline.json`. Ratchet:
-nợ **không được tăng**; trả nợ thì chạy `kiem_ten.py --cap-nhat` để con số không trượt ngược.
+**Nợ cũ**: tên tiếng Việt của skill cũ (`quet_chet.py`, `--tien-to`, `KHONG_KIEM_DUOC`…) khoanh
+trong `tests/names-baseline.json`. Ratchet: nợ **không được tăng**; trả nợ thì `--update`.
 
-## 2. Đổi tên — chỉ qua `skills/code-optimize/scripts/doi_ten.py`
+## 2. Đổi tên — chỉ qua `skills/code-optimize/scripts/rename.py`
 
 Không `sed`, không `replace` tay. Ba cách replace thẳng hỏng **im lặng**: khớp chuỗi con
 (`so` → đụng `so_file`), va chạm (tên mới đã tồn tại với nghĩa khác), bỏ sót (chỗ dùng
-trong file mình không mở). `doi_ten.py` có chốt cho cả ba: khớp theo ranh giới từ, `đếm(B)
+trong file mình không mở). `rename.py` có chốt cho cả ba: khớp theo ranh giới từ, `đếm(B)
 == 0` trước, `đếm(A) == 0` và `đếm(B) == n` sau, `--kiem` chạy test và **tự phục hồi từng
 byte** nếu đỏ (không dùng `git checkout` để phục hồi — trên Windows nó trả CRLF cho file LF).
 
