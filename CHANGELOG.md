@@ -232,6 +232,39 @@ nhất → test → C → B" bắt được va chạm nhưng **không** bắt b�
 vì trên Windows nó trả CRLF cho file LF (đo được, đúng cạm bẫy `checkout.css` 1.049 byte).
 19 khẳng định, mỗi chốt một ca hỏng một ca đúng.
 
+### Thêm — `install.py` + `VERSION`: cập nhật local không còn là `cp -r` mù
+
+Cách cài cũ chép một lần rồi đứt liên hệ với repo: bản cài không biết mình là bản nào, không
+ai báo khi có breaking change, script đã đổi tên vẫn nằm lại chạy với cờ cũ. `install.py`
+(repo → `~/.claude/skills`, **một chiều**): so sha256 từng file, chỉ ghi file khác; gỡ file
+local mang tên đã đổi (`sao_luu.py`…); **giữ nguyên** file chỉ có ở local (`sites/*.json`,
+`_backup/`); ghi dấu bản cài; in "bản cũ → bản mới" kèm mọi dòng BREAKING của CHANGELOG giữa
+hai bản; mặc định thử, `--write` mới ghi, `--pull` kéo repo trước (từ chối khi cây bẩn hoặc
+không fast-forward). Chốt sau: so lại toàn bộ, còn khác là `BROKEN`. `VERSION` ở gốc là nguồn
+duy nhất; mọi `SKILL.md` mang `version:` khớp nó. `tests/test_install.py` 14 khẳng định.
+
+Chưa có: bản cài **tự** báo khi repo có bản mới (phải chạy `install.py` mới biết).
+
+### Thêm — skill `wp-code-cheatsheet` — bảng tra sinh từ code cho BẤT KỲ dự án nào
+
+Bảng tham chiếu của repo này (kiểu Haravan) hữu ích tới mức chủ repo muốn nó cho mọi dự án.
+`skills/wp-code-cheatsheet/scripts/cheatsheet.py` quét một cây (theme/plugin/repo) và sinh
+**từ code** bảng: `functions` (chữ ký, mặc định, docblock), `hooks` dự án tự phát,
+`registrations`, `shortcodes`, `ajax` (kèm `is_public`), `rest_routes`, `constants`, `options`
+(key trong database, đếm đọc/ghi), `assets`, `templates`/`template_parts`, và `cli` (argparse —
+để bảng chạy được trên chính repo công cụ). Ba định dạng một nguồn: JSON tất định (không
+timestamp, diff được), Markdown để commit, HTML tự chứa có lọc.
+
+Ba luật giữ bảng trung thực: tên dựng bằng biến vào `unresolved` và được **đếm**, không đoán;
+docblock chỉ tính khi đứng **ngay trên** hàm (docblock đầu file + `defined()` + `function` là
+ca mồi có trong bộ hiệu chuẩn) nên `undocumented` là thước nợ tài liệu thật; và script **từ
+chối ghi** khi bộ hiệu chuẩn nội bộ đỏ (`UNCALIBRATED`). `tests/test_cheatsheet.py` — 30
+khẳng định — còn chứng minh bộ hiệu chuẩn ấy **đỏ được**: bỏ lọc `<script>` thì ca mồi 1 đỏ,
+đổi regex docblock sang lazy thì ca mồi 2 đỏ. Đối chứng ngược: xoá `inc/tham-so.php` khỏi
+fixture → `fxb_gia` biến mất và `functions` giảm đúng 1, các mục khác không đổi.
+
+Không phủ (ghi trong SKILL.md): JavaScript, class/method PHP, CSS class.
+
 ### Thêm — skill `wp-preview-builder`
 
 Gom kinh nghiệm dựng và nghiệm thu bản xem trước thành luật, mỗi luật kèm ca hỏng đã trả

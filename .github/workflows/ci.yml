@@ -74,6 +74,17 @@ jobs:
         shell: bash
         run: python tests/test_rename.py
 
+      # Cheatsheet sinh từ code: fixture, đối chứng ngược, tất định, fail-closed, và
+      # bộ hiệu chuẩn của chính script phải đỏ được khi gỡ một chốt.
+      - name: wp-code-cheatsheet — bảng tra sinh từ code
+        shell: bash
+        run: python tests/test_cheatsheet.py
+
+      # install.py: repo → ~/.claude/skills một chiều; VERSION khớp version: của mọi SKILL.md.
+      - name: install.py — cài một chiều, giữ file local
+        shell: bash
+        run: python tests/test_install.py
+
   integration:
     # Tầng mà fixture tĩnh KHÔNG thay được: dựng WordPress + WooCommerce thật rồi
     # hỏi chính nó file nào được nạp và class nào được render, sau đó so với kết

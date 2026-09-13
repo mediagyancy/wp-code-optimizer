@@ -192,6 +192,39 @@ Mã: `NAME_COLLISION` (tên mới đã tồn tại, exit 3) · `REFUSED` (cây b
 
 ---
 
+## `cheatsheet` — bảng tra của MỘT dự án · `wp-code-cheatsheet/scripts/cheatsheet.py --root <dự án> [--prefix myp_] [--out c.json] [--md C.md] [--html c.html]`
+
+Bảng này là **hợp đồng của dự án đích**, sinh từ code. Mỗi object một danh sách, mọi danh sách **sort** để hai lần chạy ra cùng byte (không có timestamp). Script **từ chối ghi** khi bộ hiệu chuẩn nội bộ đỏ (`UNCALIBRATED`, exit 2).
+
+| Tên | Kiểu | Mô tả | Ví dụ |
+|---|---|---|---|
+| `version` · `project` · `prefix` | int · str · `[]str` | schema · basename thư mục đích · tiền tố đã lọc (rỗng = lấy hết) | `"fixture-bien-doi"` · `["fxb_","fxb-"]` |
+| `functions[]` | `[]{}` | hàm top-level (khớp prefix): `name` · `file` · `line` · `params[]` · `summary` · `documented?` | |
+| `functions[].params[]` | `[]{}` | **có thứ tự**: `name` · `default` (chuỗi nguyên văn, `null` = không có) · `required?` | `{"name":"ty_le","default":"1.1","required":false}` |
+| `functions[].summary` · `documented` | str · bool | câu đầu của docblock đứng **ngay trên** hàm (docblock đầu file không tính) · có/không | `"Tính giá sau hệ số."` |
+| `hooks[]` | `[]{}` | hook **dự án tự phát** (`do_action`/`apply_filters`): `name` · `kind` (`action`/`filter`) · `arg_count` (số tham số sau tên) · `summary` (comment ngay dòng trên) · `file` · `line` | |
+| `registrations[]` | `[]{}` | `add_action`/`add_filter`: `hook` · `callback` (literal, hoặc **nguyên văn biểu thức** nếu ghép chuỗi) · `priority` (int; mặc định 10) · `file` · `line` | |
+| `shortcodes[]` | `[]{}` | `tag` · `callback` · `file` · `line` | `[myp_box]` |
+| `ajax[]` | `[]{}` | `action` (bỏ tiền tố `wp_ajax_`/`wp_ajax_nopriv_`) · `is_public?` (nopriv) · `callback` · `file` · `line` | |
+| `constants[]` | `[]{}` | `define()` khớp prefix viết hoa: `name` · `value` · `is_literal?` (false = biểu thức, giữ nguyên văn) · `file` · `line` | |
+| `options[]` | `[]{}` | key trong database, gộp theo `(kind, name)`: `name` · `kind` (`option`/`theme_mod`/`site_option`) · `read_count` · `write_count` · `files[]` | `get_option` đọc, `update_option` ghi |
+| `assets[]` | `[]{}` | `handle` · `asset_type` · `src` · `deps[]` (thứ tự nạp) · `ver` · `file` · `line` | |
+| `rest_routes[]` | `[]{}` | `namespace` · `route` · `file` · `line` | `myp/v1` · `/items` |
+| `templates[]` · `template_parts[]` | `[]{}` | file gốc theo template hierarchy (`path`) · `get_template_part`: `slug` · `name` · `file` · `line` | |
+| `cli[]` | `[]{}` | argparse trong `.py`: `script` · `command` (add_parser) · `flag` (`--a / -a`; rỗng với lệnh con) · `help` · `line` | `backup.py` · `save` |
+| `unresolved` | `{}` | tên dựng bằng biến, **đếm không đoán**: `dynamic_hook` · `dynamic_option` · `dynamic_handle` · `dynamic_constant` · `dynamic_route` · `dynamic_template_part` · `dynamic_flag` · `unparsed_call` — mỗi mục `file` · `line` · `expr`/`func` | |
+| `unresolved_count` · `counts` | int · `{}` | tổng · số mục mỗi object + `undocumented` (hàm không docblock) + `unresolved` | |
+| `NO_DOC` | nhãn | trong Markdown/HTML: hàm hoặc hook không có mô tả — nợ tài liệu, không phải "không cần" | |
+| `UNCALIBRATED` · `NOT_CHECKABLE` | code | exit 2: bộ hiệu chuẩn nội bộ đỏ (hàm trong `<script>` lọt vào, docblock cách hàm bằng code bị gán…) · exit 4: không có `.php`/`.py` hoặc thiếu `cheatsheet_template.html` | |
+| `TEMPLATE_NAMES` · `OPTION_READS` · `SKIP_DIRS` | hằng | tên file template hierarchy · hàm đọc option (còn lại là ghi) · thư mục không quét | |
+| `CALIBRATION_PHP` · `CALIBRATION_PY` | hằng | đoạn mã hiệu chuẩn nội bộ; tên bên trong (`MYP_VERSION`, `methods`, `myp_*`) **không phải** tên phát ra | |
+
+CLI: `--root` (bắt buộc) · `--prefix` · `--out` JSON · `--md` Markdown · `--html` HTML tự chứa (lọc, bấm mở; template `cheatsheet_template.html` nhận `__PROJECT__` và `__DATA__`).
+
+Không phủ: JavaScript, class/method PHP, CSS class — nói rõ trong SKILL.md.
+
+---
+
 ## Hằng nội bộ của `code_nodes.py`
 
 `RE_REQUIRE` · `RE_FUNC` · `RE_HOOK_OPEN` · `RE_EMIT` · `RE_ENQUEUE_OPEN` · `RE_TEMPLATE_PART` · `RE_STRING` — regex tìm **điểm mở** của từng lời gọi; tham số thì tách bằng cân bằng ngoặc, không bằng regex. `SKIP_DIRS`.

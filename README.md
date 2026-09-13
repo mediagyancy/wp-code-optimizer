@@ -26,6 +26,7 @@ Five skills, five moments in the same job:
 | **`wp-code-cleaner`** | auditing or deleting dead code | Deleting is easy; *proving the deletion broke nothing* is the work. Four verification tiers, each calibrated against a known-bad case. |
 | **`code-optimize`** | restructuring what survived the cleanup | Deletion is provable; *transformation* is not, with the cleaner's tiers — 5 of 6 typical refactoring bugs slip past all four. So: a static code graph treated as a **hypothesis**, checked against a real running WordPress, a rehearsed full-tree rollback, and a fifth tier that diffs the observable runtime surface before/after. Gated: refuses to run until the cleaner's scan comes back empty and a matching backup exists. |
 | **`wp-preview-builder`** | building a UI preview / prototype and deciding whether to trust it | "Looks fine" is not evidence and neither is a screenshot. Measure at 344/375/768/1280/1440 with a formula that is pinned in CI — the obvious one returned 0 on a known 296px overflow. |
+| **`wp-code-cheatsheet`** | documenting any project's public surface, or before renaming anything | A Haravan-style reference table generated **from the code**: functions and signatures, project hooks, registrations, shortcodes, AJAX, REST, constants, option keys, assets, CLI flags. Names built from variables are counted, never guessed; functions without a docblock are counted as documentation debt. |
 | **`wp-corewebvital`** | optimizing Core Web Vitals on LiteSpeed | Safe-first: only settings that can't break the site, no third-party services. |
 
 They compose: audit with `wp-code-cleaner`, ship with `wp-delivery`, then tune speed with
@@ -52,15 +53,28 @@ Every script in this repo refuses to write until its own calibration case fails 
 
 ## Install
 
-Skills live in `~/.claude/skills/`. Clone and symlink, or copy:
+Skills live in `~/.claude/skills/`. Clone once, then let `install.py` copy — it is the only
+supported path, because a bare `cp -r` leaves renamed scripts behind and never tells you
+what changed:
 
 ```bash
 git clone https://github.com/mediagyancy/wp-code-optimizer.git
-cp -r wp-code-optimizer/skills/* ~/.claude/skills/
+python wp-code-optimizer/install.py --write
 ```
 
+**Updating later** — pull and reinstall in one step; the dry run (no `--write`) shows what
+would change and lists every BREAKING line from the CHANGELOG between your installed version
+and the new one:
+
+```bash
+python wp-code-optimizer/install.py --pull --write
+```
+
+Files that exist only locally (your `sites/*.json`, `_backup/`) are never touched. The
+installed version is recorded in `~/.claude/skills/.wp-code-optimizer.version`.
+
 Then in Claude Code: `/wp-delivery`, `/wp-code-cleaner`, `/code-optimize`, `/wp-preview-builder`,
-`/wp-corewebvital`.
+`/wp-code-cheatsheet`, `/wp-corewebvital`.
 
 Claude also picks them up on its own when you describe a matching task — the `description`
 field in each `SKILL.md` is what drives that.
@@ -75,6 +89,8 @@ python tests/test_backup.py     # 23 — full-tree backup + a restore that actua
 python tests/test_clean_gate.py  # 19 — the /code-optimize entry gate, both directions
 python tests/test_rename.py      # 19 — safe rename: word boundary, collision, byte-exact restore
 python tests/check_names.py      # naming rule (CLAUDE.md §1) + docs/REFERENCE.md coverage, ratcheted
+python tests/test_cheatsheet.py  # 30 — generated cheatsheet matches the code, both directions
+python tests/test_install.py     # 14 — installer: one-way repo → local, keeps local-only files
 
 # integration: downloads WordPress + WooCommerce, runs them, compares
 python tests/integration/dung_wp.py --ra .wp-it
@@ -139,6 +155,12 @@ Every script is standalone — run them without Claude if you like.
 |---|---|
 | `probe.js` | In-page layout probe: overflow from `clientWidth` (never `innerWidth`), offenders, small tap targets, min font. |
 | `overflow_rule.py` | The decision function, pinned in CI against the real 296px false-negative. |
+
+**`wp-code-cheatsheet/scripts/`**
+
+| Script | What it does |
+|---|---|
+| `cheatsheet.py` | Generates a project's reference table from its code — JSON, Markdown and a self-contained HTML page. Refuses to write until its own calibration cases (JS function inside `<script>`, docblock separated from the function, dynamic hook name) come out right. |
 
 **Naming is a hard rule** (`CLAUDE.md` §1): international English, snake_case, every token
 meaningful, ≤ 4 tokens / ≤ 24 chars, `_count` for counts, `is_`/`has_` for booleans, no
@@ -228,6 +250,7 @@ bên cạnh, vì một luật không kèm lý do là một luật người ta s�
 | **`wp-code-cleaner`** | soát hoặc xoá code chết | Xoá thì dễ; **chứng minh xoá không hỏng gì** mới là việc. Bốn tầng xác minh, tầng nào cũng phải hiệu chuẩn bằng ca hỏng đã biết. |
 | **`code-optimize`** | tái cấu trúc phần còn lại sau khi dọn | Xoá thì chứng minh được; **biến đổi** thì không, bằng bốn tầng của cleaner — 5/6 lỗi refactor điển hình lọt qua cả bốn. Nên: đồ thị tĩnh chỉ là **giả thuyết**, đối chứng với WordPress đang chạy thật, đường lùi toàn cây đã diễn tập, và Tầng 5 so bề mặt runtime trước/sau. Có cổng: từ chối chạy khi cleaner chưa quét ra rỗng hoặc chưa có backup khớp. |
 | **`wp-preview-builder`** | dựng bản xem trước / prototype và quyết xem có tin được không | "Nhìn ổn" không phải bằng chứng, ảnh chụp cũng không. Đo ở 344/375/768/1280/1440 với công thức được ghim trong CI — công thức hiển nhiên từng trả 0 trên trang tràn 296px. |
+| **`wp-code-cheatsheet`** | tài liệu hoá bề mặt của bất kỳ dự án nào, hoặc trước khi đổi tên bất cứ gì | Bảng tra kiểu Haravan sinh **từ code**: hàm và chữ ký, hook dự án tự phát, đăng ký, shortcode, AJAX, REST, hằng, key option, asset, cờ CLI. Tên dựng bằng biến thì đếm, không đoán; hàm không docblock tính là nợ tài liệu. |
 | **`wp-corewebvital`** | tối ưu CWV trên LiteSpeed | An toàn trước: chỉ dùng setting không thể làm hỏng site, không phụ thuộc dịch vụ bên thứ ba. |
 
 Ba cái ghép được với nhau: soát bằng `wp-code-cleaner`, giao hàng bằng `wp-delivery`, rồi
@@ -253,13 +276,26 @@ Mọi script trong repo này đều **từ chối ghi** cho tới khi ca hiệu 
 
 ## Cài
 
+Clone một lần, rồi để `install.py` chép — đây là đường cài duy nhất được hỗ trợ, vì `cp -r`
+tay để lại script tên cũ và không bao giờ nói cho anh biết cái gì đã đổi:
+
 ```bash
 git clone https://github.com/mediagyancy/wp-code-optimizer.git
-cp -r wp-code-optimizer/skills/* ~/.claude/skills/
+python wp-code-optimizer/install.py --write
 ```
 
+**Cập nhật về sau** — kéo repo mới nhất rồi cài lại trong một lệnh; chạy thử (không `--write`)
+in ra sẽ đổi gì và liệt kê mọi dòng BREAKING trong CHANGELOG giữa bản đang cài và bản mới:
+
+```bash
+python wp-code-optimizer/install.py --pull --write
+```
+
+File chỉ có ở local (`sites/*.json`, `_backup/`) không bao giờ bị đụng. Bản đã cài ghi ở
+`~/.claude/skills/.wp-code-optimizer.version`.
+
 Rồi gọi `/wp-delivery`, `/wp-code-cleaner`, `/code-optimize`, `/wp-preview-builder`,
-`/wp-corewebvital`. Claude cũng tự nhận ra khi
+`/wp-code-cheatsheet`, `/wp-corewebvital`. Claude cũng tự nhận ra khi
 anh mô tả một việc khớp — phần `description` trong mỗi `SKILL.md` lo chuyện đó.
 
 ## Chạy test
@@ -272,6 +308,8 @@ python tests/test_backup.py     # 23 — backup toàn cây + một lần phục 
 python tests/test_clean_gate.py  # 19 — cổng vào của /code-optimize, hai chiều
 python tests/test_rename.py      # 19 — đổi tên an toàn: ranh giới từ, va chạm, phục hồi từng byte
 python tests/check_names.py      # luật đặt tên (CLAUDE.md §1) + độ phủ docs/REFERENCE.md, ratchet
+python tests/test_cheatsheet.py  # 30 — cheatsheet sinh ra khớp code, hai chiều
+python tests/test_install.py     # 14 — cài một chiều repo → local, giữ file chỉ có ở local
 
 # integration: tự tải WordPress + WooCommerce, chạy thật rồi so kết quả
 python tests/integration/dung_wp.py --ra .wp-it

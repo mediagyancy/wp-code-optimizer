@@ -1,5 +1,6 @@
 ---
 name: wp-preview-builder
+version: 0.6.0
 description: >-
   Dựng bản xem trước UI / prototype HTML rồi NGHIỆM THU nó bằng số, không bằng mắt. Dùng skill
   này bất cứ khi nào người dùng nói tới: dựng preview, xem trước giao diện, làm prototype, mockup

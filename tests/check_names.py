@@ -43,6 +43,7 @@ REFERENCE = os.path.join(REPO, "docs", "REFERENCE.md")
 NEW_LANE = (
     "skills/code-optimize/scripts",
     "skills/wp-preview-builder/scripts",
+    "skills/wp-code-cheatsheet/scripts",
     "tests/integration/dna.php",
     "tests/integration/tier5.py",
     "tests/integration/capture_dna.py",
