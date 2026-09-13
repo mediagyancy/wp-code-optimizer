@@ -48,19 +48,32 @@ MAU = [
     ("khoá/mật khẩu viết thẳng", re.compile(r"(?i)\b(?:password|passwd|api[_-]?key|secret)\s*[=:]\s*['\"][^'\"]{6,}")),
 ]
 
-DUOI = (".md", ".py", ".json", ".txt", ".data", ".yml", ".yaml", ".css", ".php")
-BO_QUA_TM = {".git", "__pycache__", "node_modules"}
+EXTENSIONS = (".md", ".py", ".json", ".txt", ".data", ".yml", ".yaml", ".css", ".php")
+# `.wp-it` là thư mục làm việc của integration test: WordPress + WooCommerce tải từ
+# wordpress.org. `.gitignore` đã chặn nó, nên KHÔNG có đường nào để nó lên repo — quét
+# nó là quét mã nguồn của người khác.
+#
+# Vì sao đây là một chốt hỏng chứ chỉ là ồn: trước khi sửa, hễ ai chạy tầng integration
+# ở máy là chốt này đỏ **462 dòng**, toàn bộ là email tác giả trong header của core và
+# của các thư viện đi kèm (`wp-includes/Text/Diff/...`). CI vẫn xanh, nhưng xanh NHỜ MAY:
+# chốt chạy ở job `unit`, mà job `unit` không dựng `.wp-it`. Tức bảo vệ thật chỉ tồn tại
+# do tình cờ hai job tách nhau.
+#
+# Và 462 báo động sai thì không ai đọc tới dòng 463. Đúng bài học mà chính repo này đã
+# ghi khi nới chốt cho `.test`/`.example`: một cảnh báo bị bỏ qua vài lần là một cảnh
+# báo đã chết. Chốt riêng tư của một repo CÔNG KHAI không được phép chết như vậy.
+SKIP_DIRS = {".git", "__pycache__", "node_modules", ".wp-it"}
 LOCAL = os.path.join(GOC, "tests", "rieng-tu.local.txt")
 
 
 def cac_file():
     for dp, dn, fn in os.walk(GOC):
-        dn[:] = [d for d in dn if d not in BO_QUA_TM]
+        dn[:] = [d for d in dn if d not in SKIP_DIRS]
         for f in fn:
             p = os.path.join(dp, f)
             # Bỏ qua chính máy quét và chính danh sách riêng tư — cả hai đương
             # nhiên chứa các chuỗi đang tìm, và danh sách thì .gitignore đã chặn.
-            if f.endswith(DUOI) and os.path.abspath(p) not in (TOI, os.path.abspath(LOCAL)):
+            if f.endswith(EXTENSIONS) and os.path.abspath(p) not in (TOI, os.path.abspath(LOCAL)):
                 yield p
 
 

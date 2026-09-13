@@ -5,6 +5,283 @@ và định dạng output còn có thể đổi.
 
 ---
 
+## [0.6.0] — chưa phát hành (nhánh `feat/code-optimize-lane`, PR #1)
+
+Hai lane mới, luật đặt tên thành luật cứng, và một lỗi trong chính tài liệu của repo.
+
+> Bản 0.5.0 bên dưới được phiên khác đưa thẳng lên `main` ngày 12/09 trong lúc nhánh này
+> đang mở, gồm cùng bộ bài học wp-delivery và hai script `wp_deploy_gate.py`/`wp_lock.py`
+> mà nhánh này cũng vừa hợp nhất từ bản cài local. Khi merge, lấy bản của `main` cho ba
+> file wp-delivery (làm trước, có chủ ý), nhánh này chỉ cộng lại comment `rollback_plan`.
+
+### Thêm — Tầng 5: thước cho phép BIẾN ĐỔI, không phải cho phép xoá
+
+Bốn tầng cũ sinh ra để chứng minh một phép XOÁ là an toàn, và ba trong bốn tầng được
+tham số hoá bằng MỘT DANH SÁCH ĐÃ XOÁ. Phép viết lại không có danh sách đó nên tập
+truy vấn rỗng, nên chúng **PASS RỖNG** — đúng hình dạng input đã gây ra lỗi fail-open ở
+v0.2.0 và tái phát ở v0.4.0. Tầng 2 thì bị vô hiệu hoá bằng định nghĩa: chốt mạnh nhất
+của nó là "rule còn lại phải NGUYÊN VĂN như cũ".
+
+`tests/integration/dna.php` + `tests/integration/tier5.py` chụp bề mặt quan sát được
+trước và sau rồi đòi hiệu bằng rỗng, trên bảy mặt: file nạp (có thứ tự) · hook (priority
++ thứ tự trong bucket + callback) · chuỗi fire · hàng đợi asset · chữ ký hàm kèm giá trị
+mặc định · HTML toàn văn · và một mặt TĨNH đọc điểm truy cập superglobal. Mặt tĩnh phải
+có vì ca "mất lời gọi sanitizers" không để lại dấu runtime nào trên request không mang
+tham số đó.
+
+Noise được **đo**, không đoán: chụp bản không đổi hai lượt trước, lệch giữa hai lượt là
+noise của chính phép đo và bị trừ đi.
+
+Đo trên WordPress 7.1 + WooCommerce thật: noise 0 trên cả bảy mặt, **6/6 ca tiêm bị
+bắt**, và 6/6 bị bắt bởi đúng mặt đã dự đoán TRƯỚC khi chạy.
+
+Hai vùng mù chỉ lộ ra nhờ ca hiệu chuẩn:
+
+- Lượt đầu báo `NOISE_TOO_HIGH` ở mặt `fire`, lệch từ ký tự 3523 — lượt sau đọc option từ
+  cache còn ấm nên không fire lại `pre_option_*`. Đã lọc họ hook option/transient/cache.
+  **Đánh đổi khai báo rõ:** mặt `fire` nay không trả lời được "có đổi tập option được đọc
+  hay không".
+- Ca "đảo chiều điều kiện" ban đầu KHÔNG mặt nào bắt, và lỗi nằm ở **chính phép đo**: bộ
+  chụp `require wp-load.php` rồi gọi thẳng `index.php`, bỏ qua giai đoạn `wp()` nơi hook
+  `wp` fire. Callback bị đảo chiều không chạy ở cả hai bản nên hiệu rỗng giả tạo.
+
+### Thêm — code nodes + cổng graph
+
+`skills/code-optimize/scripts/code_nodes.py` dựng đồ thị có KIỂU (node: file · hàm ·
+hook · handle asset; cạnh: require · goi · declares · registration · phat · enqueue ·
+depends_on · template_part). Đặt **cạnh** `quet_chet.py` chứ không sửa nó: `quet_chet.py`
+có 13 khẳng định đang dựa vào, và nó trả lời câu khác — "cái gì chết", không phải "cái gì
+nối với cái gì". Nó cũng dựng một đồ thị nội bộ nhưng chỉ file→file, không có cạnh hook,
+và nó **bỏ** đồ thị đi.
+
+`graph_gate.py` là cổng trung thực: đồ thị tĩnh là **giả thuyết**, ADN runtime là thứ phủ
+định hay xác nhận nó. Hai chiều lệch không đối xứng, lấy nguyên tinh thần của
+`test_integration.py`: "runtime có mà tĩnh không thấy" là **chí mạng** (node trông mồ côi
+nhưng đang chạy), "tĩnh nói có mà runtime không có" là họ lỗi `SILENT_OFF`. Fail-closed,
+exit 9, muốn đi tiếp phải khai số bằng `--accept-blind`.
+
+Hiệu chuẩn bằng fixture `inc/hook-dong.php`: một hook tên biến, một callback ghép chuỗi —
+hai dạng phổ biến nhất trong WordPress thật. 18 khẳng định, trong đó phép kiểm mạnh nhất
+là **ca đối chứng ngược**: gỡ đúng file sinh ra hai cạnh động rồi đòi cổng về 0.
+
+### Thêm — backup toàn cây + phục hồi ĐÃ DIỄN TẬP
+
+Trước `skills/code-optimize/scripts/backup.py`, repo có **0 dòng code phục hồi** và **0
+khẳng định test** về backup — trong khi bộ test đã 38 khẳng định. `wp_safe_write.py` ghi
+`.bak` cạnh từng file, tức không có mốc thời điểm nhất quán của cả cây. Một đường lùi chưa
+từng chạy là một đoạn văn.
+
+Ba lệnh: `luu` (chép toàn cây + manifest SHA-256 từng file, tự so bản chép với bản gốc
+trước khi nhận), `kiem` (drift: THÊM / THIẾU / KHÁC), `restore` (mặc định thử; `--write`
+mới phục hồi thật; từ chối backup không tự nhất quán; tự so byte cây vừa dựng với manifest
+— "đã copy xong" không phải "đã phục hồi xong").
+
+23 khẳng định, ba phần, và phần ba là phần duy nhất đáng tin: hiệu chuẩn `kiem` trên ba
+kiểu hỏng cố ý · làm hỏng một file **bên trong** backup và đòi `restore` từ chối ·
+**xoá hẳn cây nguồn** rồi phục hồi chỉ từ backup, so byte với bản gốc giữ riêng — 0 lệch.
+
+`--ignore-cr` chỉ dành cho `kiem` khi so local với bản tải từ host (CRLF/LF từng làm
+`checkout.css` lệch đúng 1.049 byte = 1.049 dòng); test chứng minh nó **không** che được
+thay đổi nội dung thật.
+
+### Thêm — cổng clean, và skill `code-optimize`
+
+`clean_gate.py` là cổng [0] của `/code-optimize`, fail-closed, hai điều kiện: `quet_chet.py`
+quét lại phải ra **rỗng** (định nghĩa xong của chính cleaner — "lặp tới khi rỗng"), và có
+backup toàn cây **khớp** cây hiện tại. Thiếu một là chặn: exit 7 `NOT_CLEAN` hoặc exit 8
+`NO_ROLLBACK`, và **gọi tên** đúng xác còn sót. 19 khẳng định, kể cả ca đối chứng
+ngược: gieo một file mồ côi vào cây đã mở được, cổng phải đóng lại và gọi tên file đó.
+
+`skills/code-optimize/SKILL.md` là điểm vào: pipeline bảy bước với bốn cổng, thứ tự bắt
+buộc, không có `--force`. Lane biến đổi theo Mikado Method (mục tiêu → thử → vẽ graph →
+**hoàn tác** → lặp → hiện thực ngược), vì đó là phương pháp có hoàn tác gắn sẵn và graph
+là artefact duy nhất. `references/checklist.md`: mỗi cổng mang `because`, **không cổng nào
+viện dẫn "WordPress best practice"** — thẩm quyền đó không tồn tại (Plugin Handbook tự
+tuyên bố cố tình không kê đơn; Theme Handbook không có một dòng về kiến trúc PHP; core để
+ngỏ ticket PSR-4 autoloader nhiều năm). Chỉ số duy nhất được phép hứa, có số đo:
+`--classmap-authoritative`, 176ms → 99ms, và chỉ khi đích có Composer autoloader.
+
+Skill này **không hứa "tinh gọn"**. Thước đếm dòng thưởng cho việc xoá thứ đắt nhất —
+chú thích kể lại ca hỏng, vòng giữ thứ tự nạp, guard `ABSPATH`.
+
+### Luật đặt tên thành luật CỨNG — `CLAUDE.md` §1, chốt `tests/check_names.py`
+
+Kiểm kê 13/09/2026: repo nói **hai ngôn ngữ, ba quy ước**. `wp-delivery` tiếng Anh
+(`STATIC_CHECKS_PASSED`, `--write-baseline`, key `pass`/`fail`/`kind`); cleaner và lane mới
+tiếng Việt không dấu (`file_sau_render`, `hook_tong_so`, `--tien-to`, `KHONG_KIEM_DUOC`); và
+ngay trong code mới cũng lẫn — `dynamic_unresolved` cạnh `version`, đếm thì lúc `so_file` lúc
+`hook_tong_so` lúc `tong_vung_mu`, mặt Tầng 5 thì `chuky` không gạch, `sanit` cụt.
+
+Bản nháp đầu chọn **tiếng Việt không dấu** làm ngôn ngữ chung. Chủ repo bác ngay: *"sai bét,
+tiếng Anh chuẩn quốc tế, đặt tên chỉ chứa những cụm mang nhiều ý nghĩa lột tả, cấm những
+biến quá dài."* Luật chốt ở `CLAUDE.md` §1, học từ bảng Liquid của Haravan (`cart.item_count`,
+`blog.articles_count`): **tiếng Anh snake_case · mỗi cụm phải mang nghĩa (cấm
+`data`/`info`/`tmp`/`obj`/`helper`/`util`) · ≤ 4 cụm, ≤ 24 ký tự · đếm `_count`, tổng
+`total_` · lồng theo object (`counts.static_hooks`) · boolean `is_`/`has_`/`can_` · mã lý do
+là mệnh đề về trạng thái · không `--force`**. Văn xuôi (mô tả, comment, log) vẫn tiếng Việt —
+luật chỉ áp cho **tên phát ra ngoài**.
+
+`docs/REFERENCE.md` (thay `BANG-THAM-CHIEU.md`) là bảng tra cho MỌI tên — mỗi mục có kiểu,
+mô tả, ví dụ, và ghi rõ **có thứ tự** hay không. `tests/check_names.py` (thay `kiem_ten.py`)
+quét **268 tên** phát ra ngoài (key · cờ CLI · mã lý do · hằng), tự hiệu chuẩn (mỗi luật một
+ca sai phải đỏ, một ca đúng phải im), và đòi bảng phủ hết lane mới. Ba lỗ tìm ra trong chính
+phép quét nhờ ca hiệu chuẩn: `to` trong blocklist va với âm tiết Việt; `'required' => false`
+trong **comment** giải thích regex bị đọc như key; mã lý do in trong chuỗi dài
+(`print("NOT_CHECKABLE: …")`) **chưa bao giờ được quét**. Thêm một lỗ lộ ra khi đổi tên hàng
+loạt: `rename.py` đổi luôn cả danh sách ca hiệu chuẩn và danh sách âm tiết Việt của linter —
+hai danh sách đó nay dựng bằng ghép chuỗi để tự miễn nhiễm với chính công cụ đổi tên.
+
+Nợ cũ: **50 tên** tiếng Việt còn lại trong skill cũ (`wp-code-cleaner`, `wp-delivery`,
+`wp-corewebvital`) khoanh trong `tests/names-baseline.json`, ratchet — không được tăng, trả
+nợ thì `--update`. Lane mới: **0**.
+
+### Đổi tên — BREAKING, theo luật mới
+
+Lane mới chưa từng phát hành nên đổi thẳng. Ba skill cũ có người dùng thật, đổi **cờ CLI và key
+JSON** dưới đây là breaking — script/alias đang gọi tên cũ sẽ hỏng ngay (argparse báo lỗi, không
+im). Mọi lượt đổi đi qua `rename.py` (ranh giới từ, chốt đếm trước/sau, `--merge` khi tên mới
+đã có sẵn trong tài liệu), rồi 5 bộ unit + 4 bộ integration chạy lại xanh.
+
+**File script / tài liệu**
+
+| Cũ | Mới |
+|---|---|
+| `scripts/sao_luu.py` · `cong_clean.py` · `cong_graph.py` · `doi_ten.py` | `backup.py` · `clean_gate.py` · `graph_gate.py` · `rename.py` |
+| `tests/integration/adn-nen.php` · `tang5.py` · `chup_adn.py` · `doi_theme.php` · `test_cong_graph.py` | `dna.php` · `tier5.py` · `capture_dna.py` · `switch_theme.php` · `test_graph_gate.py` |
+| `wp-preview-builder/scripts/quyet_dinh_tran.py` | `overflow_rule.py` |
+| `tests/kiem_ten.py` · `docs/BANG-THAM-CHIEU.md` | `tests/check_names.py` · `docs/REFERENCE.md` |
+
+**Cờ CLI — skill cũ (breaking cho người dùng)**
+
+| Cũ | Mới | Script |
+|---|---|---|
+| `--tien-to` | `--prefix` | `quet_chet.py`, `go_css.py` |
+| `--ghi` | `--write` | `go_css.py` |
+| `--lam-lai` | `--rebuild` | `tests/integration/dung_wp.py` |
+| `--cap-nhat` | `--update` | `check_names.py` |
+
+**Key JSON `quet_chet.py --json`** (đọc bởi `clean_gate.py`): `file_chet` → `dead_files` ·
+`hook_khong_nap` → `unloaded_hooks` · `ham_chet` → `dead_functions` ·
+`require_khong_phan_giai` → `unresolved_requires` · `co_loader` → `has_loader`.
+`class_nghi` giữ (nợ cũ).
+
+**Dữ liệu đã ghi trên máy người dùng**: `wp_lock.py` ghi `note` thay `ghi_chu` vào
+`wp-deploy/state.json`; `wp_deploy_gate.py` đọc `note` trong `sites/*.json`. Cả hai **đọc
+được key cũ** (`c.get('note', c.get('ghi_chu'))`) — file đã có không cần sửa.
+
+**Lane mới — schema `graph` · `dna` · `graph_trust` · `gate` · `manifest` · `tier5` · `probe`**
+
+| Cũ | Mới | Ở đâu |
+|---|---|---|
+| `nut` · `canh` · `loai` · `ham` · `phien_ban` | `nodes` · `edges` · `kind` · `func` · `version` | `graph.json` |
+| `goi` · `phat` · `khai_bao` · `dang_ky` · `dang_ky_tu` · `phu_thuoc` | `calls` · `emits` · `declares` · `registration` · `registers` · `depends_on` | `graph.json` |
+| `chua_giai` · `so_chua_giai` · `require_bien` · `hook_ten_bien` · `callback_bien` · `handle_bien` | `unresolved` · `unresolved_count` · `dynamic_require` · `dynamic_hook` · `dynamic_callback` · `dynamic_handle` | `graph.json` |
+| `bieu_thuc` · `chac_chan` · `duong_dan` · `so_dong` · `khai_o` · `nguon` · `dong` · `tu` · `den` · `ten` | `expr` · `certain` · `path` · `line_count` · `declared_in` · `source` · `line` · `from` · `to` · `name` | `graph.json` |
+| `moi_truong` · `file_nap_truoc_render` · `file_nap_sau_render` · `hook_theme` · `so_hook` · `chuoi_fire` · `chu_ky_ham` · `html_tho` · `do_dai_html` | `env` · `files_before_render` · `files_after_render` · `theme_hooks` · `hook_count` · `fire_sequence` · `signatures` · `html_raw` · `html_length` | `dna` |
+| `uu_tien` · `thu_tu` · `so_tham_so` · `tham_so` · `mac_dinh` · `bat_buoc` · `kieu` · `loi` | `priority` · `order` · `accepted_args` · `params` · `default` · `required` · `type` · `error` | `dna` |
+| `CAN_CHAY_LAI` · `THEME_KHONG_KHOP` · `KHONG_PHAN_CHIEU_DUOC` · `KHONG_CO` · `KHONG_DOC_DUOC` | `RERUN_NEEDED` · `THEME_MISMATCH` · `NOT_REFLECTABLE` · `NO_DEFAULT` · `UNREADABLE` | `dna` |
+| `dem` · `hook_tinh` · `hook_runtime` · `chi_runtime_co` · `chi_tinh_co` · `so_vung_mu` · `so_noi_qua` | `counts` · `static_hooks` · `runtime_hooks` · `runtime_only` · `static_only` · `blind_spot_count` · `overclaim_count` | `graph-trust.json` |
+| `GRAPH_DANG_TIN` · `GRAPH_DANG_TIN_CO_DIEU_KIEN` · `GRAPH_KHONG_DANG_TIN` · `TAT_AM_THAM` | `GRAPH_TRUSTED` · `GRAPH_TRUSTED_CAVEATS` · `GRAPH_UNTRUSTED` · `SILENT_OFF` | `graph-trust.json` |
+| `dieu_kien` · `chan` · `mo` · `co_loader` · `backup_ton_tai` · `cay_khop_backup` · `CHUA_CLEAN` · `KHONG_CO_DUONG_LUI` · `CONG_MO` | `conditions` · `blockers` · `open` · `has_loader` · `backup_exists` · `tree_matches_backup` · `NOT_CLEAN` · `NO_ROLLBACK` · `GATE_OPEN` | `gate.json` |
+| `luu` · `kiem` · `phuc_hoi` · `--nguon` · `--ra-json` · `--bo-qua` · `--tu` · `--so-voi` · `--bo-cr` · `--den` · `--de-len` | `save` · `check` · `restore` · `--source` · `--out` · `--exclude` · `--from` · `--against` · `--ignore-cr` · `--to` · `--overwrite` | `backup.py` |
+| `thoi_diem` · `bo_qua` · `so_file` · `tong_byte` · `them` · `thieu` · `khac` · `DA_LUU` · `KHOP` · `THU` · `PHUC_HOI` · `TU_CHOI` · `HONG` | `created_at` · `excluded` · `file_count` · `total_bytes` · `added` · `missing` · `changed` · `SAVED` · `MATCH` · `DRY_RUN` · `RESTORED` · `REFUSED` · `BROKEN` | manifest |
+| mặt `nap` · `hook` · `fire` · `asset` · `chu_ky` · `sanitise` | `files` · `hooks` · `fires` · `assets` · `signatures` · `sanitizers` | Tầng 5 |
+| `CA_TIEM` · `ma` · `cu` · `moi` · `cho_doi` · `bat` · `dat` · `bien` · `khong_tinh` · `NOISE_QUA_LON` · `KHONG_CHUP_DUOC` | `INJECTIONS` · `case_id` · `old` · `new` · `expect` · `caught` · `passed` · `indirect` · `skipped` · `NOISE_TOO_HIGH` · `CAPTURE_FAILED` | Tầng 5 |
+| `--cu` · `--moi` · `--goc` · `--chi-trong-nhay` · `--gop` · `--kiem` · `VA_CHAM` · `CHOT_SAU_LECH` · `KIEM_DO` | `--old` · `--new` · `--root` · `--quoted-only` · `--merge` · `--check` · `NAME_COLLISION` · `POSTCHECK_MISMATCH` · `CHECK_FAILED` | `rename.py` |
+| `PHIEN_BAN_PROBE` · `TRAN_NGANG` · `tran_ngang_px` · `thu_pham_that` · `da_loc_bo_vi_vo_hai` · `vi_du_da_loc` · `chu_nho_nhat` · `vung_cham_duoi_40px` · `dang_dang_nhap` · `LOI_PHEP_DO` | `PROBE_VERSION` · `OVERFLOW_STATUS` · `overflow_px` · `offenders` · `ignored_count` · `ignored_samples` · `min_font` · `small_targets` · `logged_in` · `MEASURE_ERROR` | `probe.js` |
+| `BE_RONG` · `BE_RONG_THEM` · `BIEN_TRANG_PX` · `BIEN_PHAN_TU_PX` · `CA_LICH_SU` · `tran_dung` · `tran_cong_thuc_cu` · `THUOC_CHUA_HIEU_CHUAN` | `WIDTHS` · `EXTRA_WIDTHS` · `PAGE_TOLERANCE_PX` · `ELEMENT_TOLERANCE_PX` · `KNOWN_CASES` · `expected` · `old_formula` · `UNCALIBRATED` | `overflow_rule.py` |
+| `--chap-nhan-mu` · `--adn` · `--giai-doan` · `--khong-chep` · `truoc` · `sau` · `doi` | `--accept-blind` · `--dna` · `--phase` · `--no-copy` · `before` · `after` · `switched` | `graph_gate.py`, `dna.php`, `capture_dna.py`, `switch_theme.php` |
+
+`--ra` từng mang **hai nghĩa** (thư mục làm việc của integration test / file output) — tách
+thành `--workdir` (`tier5.py`, `capture_dna.py`, `test_graph_gate.py`) và `--out`.
+`dung_wp.py`/`test_integration.py` giữ `--ra` (nợ cũ, trong baseline).
+
+### Sửa — `cai-wp.php` báo "KHÔNG dựng được" trên site đang tốt
+
+Lần chạy lại `dung_wp.py` trên site đã cài: `activate_plugin()` không include gì vì plugin
+đã active, và `WP_INSTALLING=true` làm WordPress không nạp plugin → `class_exists('WooCommerce')`
+= false, dựng báo hỏng trong khi `test_integration` chạy 14/14 ngay sau. CI chưa thấy vì
+luôn dựng mới. Sửa: plugin active mà class chưa có thì `include_once` tường minh rồi mới hỏi.
+
+
+### Hợp nhất hai chiều — bản cài local `~/.claude/skills` có bài học repo chưa có
+
+`wp-delivery/SKILL.md` local **+233 dòng** (sửa 12/09), `wp-corewebvital/SKILL.md` local
+**+174 dòng** (2.1.0, sửa 09/09) — công sức thật chỉ tồn tại trên một máy. Ngược lại repo có
+cảnh báo preset LSCWP 7.8.1 mà local không có. Hợp nhất: local làm gốc, ẩn danh theo đúng
+bảng đối chiếu (tên theme thật → `mytheme`/`theme-b`, tên site thật → Dự án A/B/C,
+đường dẫn máy → "ghi chép nội bộ"), trả lại phần repo-only, chốt riêng tư phải ra 0.
+
+Chốt riêng tư trước đó **mù về tên site**: cơ chế `tests/rieng-tu.local.txt` có sẵn nhưng
+file chưa được tạo trên máy — chính nó in "tên khách/tên site CHƯA ĐƯỢC KIỂM". Tạo xong, nó
+bắt ngay một domain khách và một hàm mang tiền tố site (`<site>_convert_to_webp`) nằm trong
+skill dùng chung của repo public (mùi "bất động", CLAUDE.md §7). Giới hạn: danh sách là của từng máy,
+CI chỉ kiểm mẫu chung.
+
+Luật rút ra (CLAUDE.md §7.5): **một nguồn** — skill sống trong repo, cài ra local, không sửa
+bản cài. Ba bản chép của cùng tài liệu đã lệch tới mức repo dạy công thức sai.
+
+### Thêm — `rename.py`: đổi tên chỉ qua đây, không `sed`
+
+Replace thẳng hỏng **im lặng** theo ba cách: khớp chuỗi con (`so` → đụng `file_count`), va chạm
+(tên mới đã tồn tại với nghĩa khác), bỏ sót (chỗ dùng trong file không mở). Cách "A → C độc
+nhất → test → C → B" bắt được va chạm nhưng **không** bắt bỏ sót và nhân đôi số lần sửa.
+`rename.py`: ranh giới từ (hoặc `--quoted-only` cho key JSON) · `đếm(B)==0` trước ·
+`đếm(A)==0` và `đếm(B)==n` sau · mặc định thử · cây git phải sạch hoặc có `--backup` ·
+`--check` chạy test, đỏ thì **phục hồi từng byte từ snapshot** — không dùng `git checkout`
+vì trên Windows nó trả CRLF cho file LF (đo được, đúng cạm bẫy `checkout.css` 1.049 byte).
+19 khẳng định, mỗi chốt một ca hỏng một ca đúng.
+
+### Thêm — skill `wp-preview-builder`
+
+Gom kinh nghiệm dựng và nghiệm thu bản xem trước thành luật, mỗi luật kèm ca hỏng đã trả
+giá. Tám cạm bẫy trong `references/cam-bay-preview.md`, và cả tám đều cho ra **âm tính
+giả** — không cái nào làm tool báo lỗi, chúng làm tool báo *sạch*.
+
+### Sửa — tài liệu của repo đang dạy đúng phép đo sinh ra âm tính giả
+
+`docs/QUY-DINH-CLAUDE-WORDPRESS.md` in công thức tràn ngang lấy `window.innerWidth` làm
+số bị trừ. Trong giả lập mobile, `innerWidth` phình theo nội dung: viewport 344px với nội
+dung rộng 640px thì nó báo 640, đúng bằng bề rộng cuộn, nên hiệu triệt tiêu và phép đo
+trả **0** trên một trang tràn **296px**. Số 0 đó trông y hệt trang sạch.
+`docs/KINH-NGHIEM-WORDPRESS.md` còn tệ hơn một bậc: tiêu chí so sánh lỗi thời, và chỉ một
+bề rộng 375px. Danh sách bề rộng ở phần "cách chạy" thiếu mốc 1440 dù bảng phía trên có.
+
+Nay công thức được ghim bằng khẳng định trong bộ test (khai báo trong file CI; nhánh này chưa push nên chưa chạy trên runner)
+(`skills/wp-preview-builder/scripts/overflow_rule.py` + `tests/test_preview.py`, 29
+khẳng định): cả hai công thức được giữ lại, và bộ hiệu chuẩn bắt buộc phải tồn tại một ca
+mà chúng cho kết quả khác nhau — bộ nào không phân biệt được thì không kiểm gì cả.
+
+Hai lỗ trong chính phép canh đó, tìm ra nhờ ca hiệu chuẩn dùng **nguyên văn** dòng sai
+lịch sử thay vì một biến thể tự nghĩ: dòng sai gốc viết bằng dấu trừ Unicode `−`
+(U+2212) nên regex chỉ khớp `-` ASCII sẽ mù trước đúng dòng nó sinh ra để chặn; và dạng
+**so sánh** `scrollWidth == innerWidth` không có dấu trừ nào nên thoát hết các mẫu ban đầu.
+
+### Sửa — bộ integration cũ xanh nhờ thứ tự chạy
+
+`dna.php --theme-slug` gọi `switch_theme()` và để nguyên — đúng thiết kế, vì nó cần
+theme đó ở request kế. Hệ quả: chạy `test_graph_gate.py` rồi `test_integration.py` thì bộ
+sau chụp nhầm `fixture-bien-doi`, `fxt-bac--1` không còn trong HTML, và khẳng định "class
+ghép chuỗi được giữ" **đỏ**. CI xanh chỉ vì thứ tự job tình cờ đúng.
+
+Nay mỗi bộ tự bảo đảm tiền đề của mình bằng `switch_theme.php` trước khi chụp, và
+`test_integration.py` có thêm một khẳng định: theme đang chụp đúng là theme của nó. Chạy
+bốn bộ theo thứ tự đảo ngược để chứng minh: xanh hết.
+
+Phép sửa này lộ thêm một nguồn noise cho Tầng 5: hook `query` của `$wpdb` fire ở lượt A
+(ngay sau đổi theme, cache vừa flush, đọc `site_option` từ DB) mà không fire ở lượt B
+(đọc từ cache). Cùng họ với noise option/transient, cùng cách xử lý, và cùng đánh đổi khai
+báo: mặt `fire` không trả lời "có đổi số truy vấn DB không".
+
+### Sửa — chốt riêng tư xanh nhờ may
+
+`tests/kiem_rieng_tu.py` quét cả `.wp-it/`, nên hễ ai chạy tầng integration ở máy là nó
+đỏ **462 dòng** email tác giả trong core WordPress. CI vẫn xanh, nhưng xanh **nhờ may**:
+chốt chạy ở job `unit`, mà job `unit` không dựng `.wp-it`. Bảo vệ thật chỉ tồn tại do
+tình cờ hai job tách nhau — và 462 báo động sai thì không ai đọc tới dòng 463.
+
+---
+
 ## [0.5.0] — 2026-09-12
 
 Đúc kết một tuần làm việc dày trên một site WooCommerce thật (05–12/09) vào kho kiến thức
@@ -72,9 +349,9 @@ tree-ish nên phải lặp qua từng ref (truyền nhiều ref là nó trả v�
 
 Lần chạy đầu của phép kiểm trên báo "(khớp)" trong khi nó dò **0 file**, vì lệnh gom ứng
 viên sai. Đúng cái fail-open đã sửa ở v0.2.0, tái phát trong code viết để chống nó. Nay
-danh sách ứng viên rỗng là `KHONG_KIEM_DUOC` và thoát khác 0.
+danh sách ứng viên rỗng là `NOT_CHECKABLE` và thoát khác 0.
 
-Và một lỗi nữa lộ ra khi viết test: sau khi in `KHONG_KIEM_DUOC`, script **vẫn in tiếp
+Và một lỗi nữa lộ ra khi viết test: sau khi in `NOT_CHECKABLE`, script **vẫn in tiếp
 "(khớp)"** — hai câu mâu thuẫn trong cùng một output.
 
 Bộ test lên **38 khẳng định**, hai cái mới đều đã hiệu chuẩn ngược: gỡ chốt fail-closed
@@ -145,9 +422,9 @@ lỗi, và thêm bộ test + CI để lần sau không phải trông vào trí t
   `.x:is(.foo,.bar){…}` bị cắt thành `.bar){…}` — sai cú pháp — mà phép kiểm chỉ đếm
   ngoặc nhọn nên vẫn cân bằng, và script **đã thực sự ghi đè file nguồn**.
   Nay: tách theo độ sâu, thêm chốt "mỗi vế phải cân bằng `()` `[]`", và
-  **mặc định chỉ chạy thử — phải truyền `--ghi` mới ghi**.
+  **mặc định chỉ chạy thử — phải truyền `--write` mới ghi**.
 - **`doi_chung_live.py` fail-open.** Chạy không tham số nào vẫn in "Sạch ở tầng này"
-  và thoát 0 — "chưa kiểm gì" trông y hệt "đã kiểm và sạch". Nay trả `KHONG_KIEM_DUOC`,
+  và thoát 0 — "chưa kiểm gì" trông y hệt "đã kiểm và sạch". Nay trả `NOT_CHECKABLE`,
   nói rõ thiếu tham số nào, và thoát 2.
 - **`quet_chet.py` kết luận sai về file chết, cả hai chiều.** Tham số `--loader` được
   nhận nhưng không dùng, và đồ thị không đi theo cạnh `require`/`include`. Hậu quả: một

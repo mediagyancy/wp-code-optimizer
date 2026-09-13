@@ -99,7 +99,7 @@ def rai_canh_bao(repo, d):
             "> chủ đợt trả chỗ. Sổ gốc: `<.git chung>/wp-deploy/state.json`.", ""]
     for c in d["chiem_cho"]:
         dong += [f"## `{c['nhanh']}` giữ chỗ từ {c['luc']}", "",
-                 f"{c.get('ghi_chu', '')}", "",
+                 f"{c.get('note', c.get('ghi_chu', ''))}", "",  # ghi_chu: state.json cũ
                  "Các file đang bị chiếm — đừng sửa, đừng đóng gói, đừng bump version:", ""]
         dong += [f"- `{f}`" for f in c.get("files", [])]
         dong += [""]
@@ -180,7 +180,7 @@ def main():
         if not d["chiem_cho"]:
             print("  không nhánh nào đang giữ chỗ")
         for c in d["chiem_cho"]:
-            print(f"  `{c['nhanh']}` từ {c['luc']} — {c.get('ghi_chu', '')}")
+            print(f"  `{c['nhanh']}` từ {c['luc']} — {c.get('note', c.get('ghi_chu', ''))}")
             for f in c.get("files", []):
                 print(f"      {f}")
         print(f"\nNHẬT KÝ DEPLOY ({len(d['nhat_ky'])} đợt)")
@@ -206,7 +206,7 @@ def main():
             return 1
         d["chiem_cho"] = [c for c in d["chiem_cho"] if c["nhanh"] != a.branch]
         d["chiem_cho"].append({"nhanh": a.branch, "files": a.files,
-                               "ghi_chu": a.note, "luc": luc})
+                               "note": a.note, "luc": luc})
         ghi(p, d)
         n, tong, _ = rai_canh_bao(repo, d)
         print(f"DA_GIU_CHO       `{a.branch}` giữ {len(a.files)} file")

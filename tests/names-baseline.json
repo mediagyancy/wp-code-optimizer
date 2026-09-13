@@ -1,0 +1,15 @@
+{
+  "skills/wp-code-cleaner/scripts/doi_chung_live.py": 7,
+  "skills/wp-code-cleaner/scripts/dung_so_computed.py": 5,
+  "skills/wp-code-cleaner/scripts/go_ham.py": 2,
+  "skills/wp-code-cleaner/scripts/quet_chet.py": 1,
+  "skills/wp-delivery/scripts/wp_deploy_gate.py": 7,
+  "skills/wp-delivery/scripts/wp_freshness.py": 3,
+  "skills/wp-delivery/scripts/wp_lock.py": 11,
+  "skills/wp-delivery/scripts/wp_module_size.py": 3,
+  "skills/wp-delivery/scripts/wp_safe_write.py": 2,
+  "tests/integration/dung_wp.py": 1,
+  "tests/integration/su-that-nen.php": 5,
+  "tests/integration/test_integration.py": 1,
+  "tests/test_rename.py": 2
+}

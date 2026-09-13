@@ -54,7 +54,7 @@ soát plugin và database". Đừng nói "đã audit toàn site".
 ### 1. Quét — chỉ đọc, chưa sửa gì
 
 ```bash
-python scripts/quet_chet.py --theme "đường/dẫn/theme" --tien-to mytheme_,mg_
+python scripts/quet_chet.py --theme "đường/dẫn/theme" --prefix mytheme_,mg_
 ```
 
 Trả về ba mục: file không có đường nào dẫn tới · hàm không ai gọi · class CSS **nghi**

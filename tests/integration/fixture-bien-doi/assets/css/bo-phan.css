@@ -1,0 +1,6 @@
+/* Style do template-parts/bo-phan.php enqueue. Tồn tại để ca "dời template part sang
+   sau wp_head()" có một hậu quả ĐO ĐƯỢC: handle này rơi khỏi hàng đợi style. */
+
+.fxb-bo-phan {
+	display: block;
+}

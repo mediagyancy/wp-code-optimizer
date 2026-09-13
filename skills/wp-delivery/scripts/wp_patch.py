@@ -177,12 +177,12 @@ def kiem_html(s, ten_file='(chuỗi)', bo_qua_node=False):
     return True
 
 
-def ghi_an_toan(duong_dan, noi_dung, kiem=True):
+def ghi_an_toan(path, noi_dung, kiem=True):
     """Kiểm rồi mới ghi. Không qua kiểm thì file cũ còn nguyên."""
-    if kiem and duong_dan.lower().endswith(('.html', '.htm')):
-        kiem_html(noi_dung, duong_dan)
-    tmp = duong_dan + '.tmp'
+    if kiem and path.lower().endswith(('.html', '.htm')):
+        kiem_html(noi_dung, path)
+    tmp = path + '.tmp'
     with open(tmp, 'w', encoding='utf-8') as f:
         f.write(noi_dung)
-    os.replace(tmp, duong_dan)
-    return duong_dan
+    os.replace(tmp, path)
+    return path

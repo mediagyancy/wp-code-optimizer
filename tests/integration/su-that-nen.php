@@ -75,5 +75,5 @@ echo wp_json_encode( array(
 	),
 	'hook_init_dang_ky'  => $co_hook_init,
 	'woocommerce_active' => class_exists( 'WooCommerce' ),
-	'do_dai_html'        => strlen( $html ),
+	'html_length'        => strlen( $html ),
 ), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );

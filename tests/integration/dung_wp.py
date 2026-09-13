@@ -72,13 +72,13 @@ def php_args():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ra", required=True, help="thư mục làm việc")
-    ap.add_argument("--lam-lai", action="store_true", help="xoá và dựng lại từ đầu")
+    ap.add_argument("--rebuild", action="store_true", help="xoá và dựng lại từ đầu")
     a = ap.parse_args()
 
     W = os.path.abspath(a.ra).replace("\\", "/")
     tai_dir = os.path.join(W, "tai")
     site = os.path.join(W, "site")
-    if a.lam_lai and os.path.exists(site):
+    if a.rebuild and os.path.exists(site):
         shutil.rmtree(site, ignore_errors=True)
     os.makedirs(tai_dir, exist_ok=True)
 

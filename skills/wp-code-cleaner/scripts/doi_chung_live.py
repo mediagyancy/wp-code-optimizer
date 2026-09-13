@@ -113,7 +113,7 @@ def main():
     if a.loader and a.ung_vien_file and a.site:
         chay.append("so require của loader với file có trên host")
     if not chay:
-        print("KHONG_KIEM_DUOC — không có phép kiểm nào chạy được.\n")
+        print("NOT_CHECKABLE — không có phép kiểm nào chạy được.\n")
         if not urls:
             print("  · thiếu URL: truyền --url hoặc --url-file")
         if not moc:
@@ -200,7 +200,7 @@ def main():
         # đầu tiên của chính phép kiểm này rơi đúng vào bẫy đó: lệnh gom ứng viên
         # sai nên ra 0 dòng, và nó vẫn in "(khớp)" rồi thoát 0.
         if not ung:
-            print("   KHONG_KIEM_DUOC — danh sách ứng viên rỗng, không dò file nào.")
+            print("   NOT_CHECKABLE — danh sách ứng viên rỗng, không dò file nào.")
             print("   Đây KHÔNG phải 'khớp'. Xem lệnh gom ứng viên ở cuối mục này.")
             loi += 1
             ung = []
