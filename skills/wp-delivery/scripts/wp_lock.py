@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Sổ chiếm chỗ + nhật ký deploy dùng chung cho mọi worktree của một repo.
 
-Vì sao cần: ngày 05/09/2026 có 13 worktree cùng trỏ vào du-an-a.example. Hai phiên
-cùng tự đặt version `1.24.1` cho hai gói khác nhau; một đợt giao `functions.php`
-dựng từ `main` tắt mất tính năng banner của phiên khác. Không ai làm sai quy trình
+Vì sao cần: một buổi có 13 worktree cùng trỏ vào một site WooCommerce đang chạy. Hai
+phiên cùng tự đặt version `1.24.1` cho hai gói khác nhau; một đợt giao `functions.php`
+dựng từ `main` tắt mất một tính năng của phiên khác. Không ai làm sai quy trình
 của riêng mình — họ chỉ **không có chỗ nào để nhìn thấy nhau**.
 
 Sổ đặt ở `<.git chung>/wp-deploy/state.json`, KHÔNG đặt trong cây làm việc: mỗi
@@ -20,7 +20,7 @@ Dùng:
         --files functions.php assets/css/main.css --note "đợt logo, host 1.24.3->1.24.4"
 
     # xin số version kế tiếp, không bao giờ trùng
-    python wp_lock.py --repo R --next-version --site https://du-an-a.example --theme mytheme
+    python wp_lock.py --repo R --next-version --site https://SITE --theme THEME_SLUG
 
     # ghi nhật ký khi gói lên host
     python wp_lock.py --repo R --log --branch tinh-nang/logo --version 1.24.4 \\
@@ -104,7 +104,7 @@ def rai_canh_bao(repo, d):
         dong += [f"- `{f}`" for f in c.get("files", [])]
         dong += [""]
     dong += ["## Ba việc xin dừng cho tới khi file này biến mất", "",
-             "1. Không bump `MYTHEME_VERSION` — xin số bằng `wp_lock.py --next-version`.",
+             "1. Không bump hằng số version theme — xin số bằng `wp_lock.py --next-version`.",
              "2. Không đóng gói / deploy các file ở trên.",
              "3. Không merge vào `main` trước chủ đợt.", "",
              "Cần đụng gấp thì nhắn thẳng phiên đang giữ, đừng sửa song song.", ""]

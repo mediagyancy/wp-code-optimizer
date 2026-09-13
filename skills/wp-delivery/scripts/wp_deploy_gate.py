@@ -5,11 +5,11 @@
 Script này trả lời câu khác, và là câu đã trả giá đắt hơn: **trên host đang có thứ
 gì mà git không biết, và tôi sắp đè lên nó không?**
 
-Ba ca thật trên du-an-a.example ngày 05/09/2026, cùng một buổi:
+Ba ca thật trên một site WooCommerce, cùng một buổi:
 
-1. `inc/bao-gia.php` — bản đang chạy trên host có 287 dòng CHƯA TỪNG commit. Một
+1. Một file `inc/` — bản đang chạy trên host có 287 dòng CHƯA TỪNG commit. Một
    phiên khác suýt deploy bản lấy từ `main` và xoá trắng số dòng đó.
-2. `inc/hero-banner.php` + 3 file của tính năng banner — sống trên host, không có
+2. `inc/hero-banner.php` + 3 file của một tính năng — sống trên host, không có
    trong `main`. Một đợt giao `functions.php` dựng từ `main` đã xoá hai dòng
    `require`, tắt tính năng. `function_exists()` làm nó hỏng IM LẶNG: `php -l`
    sạch, không một dòng lỗi PHP, và trang chỉ suy biến về nội dung demo.
@@ -17,14 +17,13 @@ Ba ca thật trên du-an-a.example ngày 05/09/2026, cùng một buổi:
    không ai phân biệt được host đang chạy bản của ai.
 
 Bản đầu của script này quét thiếu và bỏ lọt ca thứ tư, do một phiên khác tìm ra
-bằng tay: `mu-plugins/mytheme-chuyen-muc-redirect.php` và `mytheme-url-danh-muc.php` đang
-phục vụ ĐIỀU HƯỚNG TOÀN SITE trên host mà `main` không có bản nào — chúng chỉ
-sống ở một nhánh chưa merge. Phép kiểm 6 nay quét cả `mu-plugins/` và toàn bộ
-cây theme, không chỉ hai thư mục.
+bằng tay: hai mu-plugin đang phục vụ ĐIỀU HƯỚNG TOÀN SITE trên host mà `main`
+không có bản nào — chúng chỉ sống ở một nhánh chưa merge. Phép kiểm 6 nay quét cả
+`mu-plugins/` và toàn bộ cây theme, không chỉ hai thư mục.
 
 Dùng:
-    python wp_deploy_gate.py --repo "<đường/dẫn/repo>" \\
-        --site https://du-an-a.example --theme mytheme \\
+    python wp_deploy_gate.py --repo "<gốc repo>" \\
+        --site https://SITE --theme THEME_SLUG \\
         --branch tinh-nang/logo --version 1.24.5 \\
         --files functions.php assets/css/home.css
 
@@ -93,7 +92,7 @@ def http_ma(url, timeout=20):
 def ver_host(site, theme, timeout=25):
     """Version theme ĐANG CHẠY Ở ORIGIN, không phải bản LiteSpeed còn giữ.
 
-    Đo 09/09/2026 trên du-an-a.example: canonical trả `1.24.30` kèm
+    Đo được một lần: canonical trả `1.24.30` kèm
     `x-litespeed-cache: hit`, cùng lúc origin trả `1.24.31`. Bản đầu gọi thẳng
     URL trang chủ nên đọc phải bản cache, rồi chốt 5 báo "main khai 1.24.31
     nhưng host chạy 1.24.30" — chặn một gói hoàn toàn hợp lệ. Cache còn
@@ -120,7 +119,9 @@ def ver_host(site, theme, timeout=25):
 
 def ver_trong_git(repo, ref, theme_rel):
     _, s, _ = git(repo, "show", f"{ref}:{theme_rel}/functions.php")
-    m = re.search(r"MYTHEME_VERSION',\s*'([0-9][0-9.]*)'", s or "")
+    # Khớp mọi hằng số kiểu `define('<TIỀN_TỐ>_THEME_VERSION', '1.2.3')` — không gắn
+    # cứng một theme. Đổi mẫu ở đây nếu theme khai version bằng header thay vì hằng số.
+    m = re.search(r"[A-Z][A-Z0-9_]*_THEME_VERSION['\"]?\s*,\s*['\"]([0-9][0-9.]*)", s or "")
     return m.group(1) if m else None
 
 
@@ -333,10 +334,13 @@ def main():
     p.add_argument("--site", required=True)
     p.add_argument("--theme", required=True, help="tên thư mục theme trong NHÁNH")
     p.add_argument("--theme-host", help="tên thư mục theme ĐANG CHẠY trên host, nếu khác --theme "
-                   "(đợt đổi tên thư mục 11/09/2026: host còn mytheme, nhánh đã mytheme-theme)")
+                   "(ví dụ giữa đợt đổi tên thư mục: host còn tên cũ, nhánh đã tên mới)")
     p.add_argument("--theme-main", help="tên thư mục theme trong MAIN, nếu khác --theme")
-    p.add_argument("--theme-rel", default="source code/wp-content/themes")
-    p.add_argument("--mu-rel", default="source code/wp-content/mu-plugins")
+    p.add_argument("--theme-rel", default="wp-content/themes",
+                   help="đường dẫn tới thư mục themes trong repo; đổi nếu repo lồng sâu hơn "
+                        "(ví dụ 'source code/wp-content/themes')")
+    p.add_argument("--mu-rel", default="wp-content/mu-plugins",
+                   help="đường dẫn tới thư mục mu-plugins trong repo")
     p.add_argument("--branch")
     p.add_argument("--version")
     p.add_argument("--files", nargs="*", default=[])

@@ -144,7 +144,7 @@ read the calibration section above — that's the load-bearing idea.
 
 ## Status and confidence
 
-Version **0.5.0**. Pre-1.0: CLI flags and output format may still change.
+Version **0.6.0**. Pre-1.0: CLI flags and output format may still change.
 
 | Area | Confidence | What backs it |
 |---|---|---|
@@ -288,7 +288,7 @@ tích luỹ từ ba site WordPress sản xuất (ẩn danh thành Dự án A, B,
 
 ## Trạng thái và mức chắc chắn
 
-Phiên bản **0.5.0**. Trước 1.0, tham số dòng lệnh và định dạng output còn có thể đổi.
+Phiên bản **0.6.0**. Trước 1.0, tham số dòng lệnh và định dạng output còn có thể đổi.
 
 | Phần | Mức chắc chắn | Dựa vào đâu |
 |---|---|---|

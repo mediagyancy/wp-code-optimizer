@@ -5,9 +5,14 @@ và định dạng output còn có thể đổi.
 
 ---
 
-## [0.5.0] — 2026-09-10
+## [0.6.0] — chưa phát hành (nhánh `feat/code-optimize-lane`, PR #1)
 
-Hai lane mới, và một lỗi trong chính tài liệu của repo.
+Hai lane mới, luật đặt tên thành luật cứng, và một lỗi trong chính tài liệu của repo.
+
+> Bản 0.5.0 bên dưới được phiên khác đưa thẳng lên `main` ngày 12/09 trong lúc nhánh này
+> đang mở, gồm cùng bộ bài học wp-delivery và hai script `wp_deploy_gate.py`/`wp_lock.py`
+> mà nhánh này cũng vừa hợp nhất từ bản cài local. Khi merge, lấy bản của `main` cho ba
+> file wp-delivery (làm trước, có chủ ý), nhánh này chỉ cộng lại comment `rollback_plan`.
 
 ### Thêm — Tầng 5: thước cho phép BIẾN ĐỔI, không phải cho phép xoá
 
@@ -119,7 +124,7 @@ blocklist tiếng Anh va với âm tiết Việt (`--tien-to`); `'required' => f
 giải thích regex bị đọc như key; và mã lý do in trong chuỗi dài (`print("KHONG_KIEM_DUOC: …")`)
 **chưa bao giờ được quét** vì regex đòi cả chuỗi chỉ là mã.
 
-Nợ cũ: `wp-delivery` **48 tên tiếng Anh** (34 trong 4 script có sẵn + 14 trong `wp_deploy_gate.py`,
+Nợ cũ: `wp-delivery` **47 tên tiếng Anh** (34 trong 4 script có sẵn + 13 trong `wp_deploy_gate.py`,
 `wp_lock.py` vừa đưa từ local vào) khoanh trong `tests/ten-baseline.json`, ratchet — không được
 tăng, giảm thì phải `--cap-nhat`.
 
@@ -148,11 +153,6 @@ file chưa được tạo trên máy — chính nó in "tên khách/tên site CH
 bắt ngay một domain khách và một hàm mang tiền tố site (`<site>_convert_to_webp`) nằm trong
 skill dùng chung của repo public (mùi "bất động", CLAUDE.md §7). Giới hạn: danh sách là của từng máy,
 CI chỉ kiểm mẫu chung.
-
-Đưa vào repo hai script chỉ có ở local mà `SKILL.md` đã tham chiếu 8 lần: `wp_deploy_gate.py`
-(cổng deploy liên worktree — 3 ca thật 05/09: 287 dòng chưa commit suýt bị xoá trắng, tính năng
-tắt im lặng vì thiếu `require`, hai phiên cùng đặt một version) và `wp_lock.py` (sổ chiếm chỗ
-dùng chung qua `.git` cho 13 worktree cùng trỏ một site).
 
 Luật rút ra (CLAUDE.md §7.5): **một nguồn** — skill sống trong repo, cài ra local, không sửa
 bản cài. Ba bản chép của cùng tài liệu đã lệch tới mức repo dạy công thức sai.
@@ -215,6 +215,47 @@ báo: mặt `fire` không trả lời "có đổi số truy vấn DB không".
 đỏ **462 dòng** email tác giả trong core WordPress. CI vẫn xanh, nhưng xanh **nhờ may**:
 chốt chạy ở job `unit`, mà job `unit` không dựng `.wp-it`. Bảo vệ thật chỉ tồn tại do
 tình cờ hai job tách nhau — và 462 báo động sai thì không ai đọc tới dòng 463.
+
+---
+
+## [0.5.0] — 2026-09-12
+
+Đúc kết một tuần làm việc dày trên một site WooCommerce thật (05–12/09) vào kho kiến thức
+và skill `wp-delivery`. Mọi bài học gắn với một commit / con số đã trả giá; tên site và
+định danh đã ẩn danh như phần còn lại của repo.
+
+### Thêm — bài học mới trong `docs/KINH-NGHIEM-WORDPRESS.md`
+
+Rải vào các nhóm D, E, F, G, H, K, L, M:
+
+- **WooCommerce lõi** — công tắc "ẩn hàng hết" lọc bằng thẻ `outofstock` có thể chưa gán
+  (lọc bằng `_stock_status`); đếm danh mục bằng `wc_get_products` xoá bài toán cha+con gấp
+  đôi; mô tả sản phẩm thường không đi qua `the_content()` → bám `woocommerce_product_get_description`.
+- **Khoá transient phải bám version theme** — DOC/GHI/XOÁ cùng một khoá, nếu không bề mặt
+  lệch âm thầm sau đợt chỉ đổi cách tính.
+- **CSS** — đè bằng lớp phạm vi phải khai lại MỌI thuộc tính (thắng specificity chưa đủ);
+  màn cực hẹp 280–330px phải đo trên site thật, "phần tử vượt viewport" không bắt được chữ
+  cắt trong nút.
+- **Đổi slug trang là migration** — không có auto-redirect, phải tự 301.
+- **Làm tròn giá ở cửa đọc phía khách**, không ở getter dùng chung với lúc lưu; tròn đơn giá
+  trước khi nhân số lượng.
+- **Nhập dữ liệu hàng loạt** — ô trống ≠ xoá; đọc mọi hàng tiêu đề + ánh xạ cột do người
+  nhập chốt; "0đ" = miễn phí; ngưỡng phép soát hiệu chuẩn trên file thật.
+- **Kỷ luật đo** — "đọc lại chính cái mình vừa bấm" đẻ ra giả thuyết sai và deploy thừa
+  (deploy không phải phép chẩn đoán); danh sách đang sắp xếp; công cụ quản trị nội bộ ba trụ.
+- **Đa phiên** — tag cứu hộ phải có chú thích (`git tag -a`) mới được `push.followTags` đẩy;
+  ba lỗ hook gác cổng chỉ lộ khi dựng ca dương; bản tải FTP thiếu thư mục → git tưởng xoá file.
+
+### Thêm — skill `wp-delivery`
+
+- Mục **"Nhiều worktree cùng deploy"**: sổ chiếm chỗ dùng chung qua `.git`, cổng deploy tám
+  phép kiểm (ca banner "file sống trên host mà `main` không có"), và bài học "đo nhầm câu hỏi".
+- Hai script **`wp_deploy_gate.py`** và **`wp_lock.py`** (genericize từ bản dùng thật): cổng
+  deploy liên worktree + sổ chiếm chỗ/nhật ký. Version-constant dò theo mẫu `*_THEME_VERSION`,
+  không gắn cứng một theme.
+- Các bài học vận hành mới rải vào "Kiểm đúng runtime state", "Giữ pipeline WordPress", "Sửa
+  dữ liệu hàng loạt", "Một luật nghiệp vụ nhiều bề mặt", "Kiểm nối asset", "Môi trường thử",
+  "Đổi schema/meta/option".
 
 ---
 

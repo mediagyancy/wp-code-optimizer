@@ -137,12 +137,11 @@ là điểm nối của hàng chục plugin, không phải hàm tiện ích.
 - `get_template_part()` **không kế thừa biến local của caller**. Truyền `$args`, hoặc để template
   tự lấy dữ liệu. Đây là lỗi hợp đồng API, `php -l` không bắt được.
 - Sửa xong phải test trên WordPress thật, không phải trên bản dựng tay.
-- **Mô tả sản phẩm WooCommerce thường KHÔNG đi qua `the_content()`.** `template-parts/product/details.php`
-  lấy thẳng `$product->get_description()` rồi tự `wpautop()+wp_kses_post()`, nên filter treo trên
+- **Mô tả sản phẩm WooCommerce thường KHÔNG đi qua `the_content()`.** Nhiều theme lấy thẳng
+  `$product->get_description()` trong template rồi tự `wpautop()+wp_kses_post()`, nên filter treo trên
   `the_content` vô tác dụng — trang có schema `FAQPage` (đọc `post_content`) mà không có accordion, hỏng
   nửa vời dễ đọc nhầm là đạt. Bám `woocommerce_product_get_description` (priority sau Rank Math) và **bỏ
-  guard `in_the_loop()/is_main_query()`** vì filter này chạy ngoài loop; giới hạn bằng `mytheme_product_is_single_view()`
-  để không đụng SP liên quan và wp-admin. (10/09/2026)
+  guard `in_the_loop()/is_main_query()`** vì filter này chạy ngoài loop; tự giới hạn phạm vi single view.
 
 ### `functions.php` chỉ là bootstrap — cấm biến thành bãi chứa code
 
@@ -393,17 +392,15 @@ Không xoá khoá cũ khi code đang chạy trên host vẫn còn đọc nó. N�
 coi đó là migration riêng và xin phép, không giấu vào một bản sửa giao diện.
 
 **Đổi slug trang cũng là migration — KHÔNG có auto-redirect.** `wp_old_slug_redirect` không chạy như
-tài liệu gợi ý: đổi `/thanh-toan/` → `/checkout/` (07/09/2026), đo ngay thì `/thanh-toan/` trả **404**
-(WooCommerce trỏ trang bằng ID nên chức năng không đổi, nhưng URL cũ thì chết). Link cũ nằm trong email
-báo đơn và tin nhắn khách → `inc/checkout-page.php` tự thêm 301 riêng, giữ nguyên chuỗi truy vấn; gỡ
-hàm đó là link cũ chết lại.
+tài liệu gợi ý: đổi `/thanh-toan/` → `/checkout/`, đo ngay thì slug cũ trả **404** (WooCommerce trỏ
+trang bằng ID nên chức năng không đổi, nhưng URL cũ thì chết). Link cũ nằm trong email báo đơn và tin
+nhắn khách → tự thêm 301 riêng, giữ nguyên chuỗi truy vấn; gỡ hàm đó là link cũ chết lại.
 
 **Khoá cache/transient phải mang theo version theme, và DOC/GHI/XOÁ phải cùng một khoá.** Đổi CÁCH tính
-mà không đổi trường nào vẫn làm bề mặt lệch nếu kết quả đang được cache: `mytheme_bg_collect()` cache 286
-dòng 1 giờ khiến trang SP hiện giá mới còn bảng giá giữ giá cũ (09/09/2026). Ba bẫy im lặng: đổi khoá
-chỉ ở khâu GHI → không bao giờ trúng cache (truy vấn chạy mọi lượt tải); câu xoá trỏ tiền tố cũ → bản
-cũ nằm lại `wp_options` mãi; gắn khoá vào `MYTHEME_VERSION` → mỗi deploy cache tự chết, kể cả đợt
-chỉ đổi cách tính.
+mà không đổi trường nào vẫn làm bề mặt lệch nếu kết quả đang được cache: một hàm gom dữ liệu cache 1 giờ
+khiến trang SP hiện giá mới còn bảng giá giữ giá cũ. Ba bẫy im lặng: đổi khoá chỉ ở khâu GHI → không bao
+giờ trúng cache (truy vấn chạy mọi lượt tải); câu xoá trỏ tiền tố cũ → bản cũ nằm lại `wp_options` mãi;
+gắn khoá vào hằng số version theme → mỗi deploy cache tự chết, kể cả đợt chỉ đổi cách tính.
 
 ### Gỡ logic cũ — đi ngược chiều
 
@@ -488,8 +485,8 @@ phần tử trọng yếu trên trang thật.
 
 **Và thắng điểm specificity vẫn chưa đủ: rule đè bằng lớp phạm vi phải KHAI LẠI mọi thuộc tính mình
 dựa vào.** Cơ chế khác hẳn "rule cũ thắng": rule mới thắng điểm nhưng không khai lại thuộc tính cũ nên
-giá trị cũ vẫn áp. Rule mới thắng `.main-navigation__inner` nhưng quên khai lại
-`justify-content:space-between` → hàng menu bị đẩy văng **217px**. (11/09/2026)
+giá trị cũ vẫn áp. Một rule mới thắng `.main-navigation__inner` nhưng quên khai lại
+`justify-content:space-between` → hàng menu bị đẩy văng **217px**.
 
 ---
 
@@ -531,15 +528,15 @@ và nhiều dòng. Một bề mặt tự cài lại luật bằng JS/PHP riêng 
 được nó chỉ trình bày kết quả của model chuẩn.
 
 **Biến đổi giá (làm tròn, quy đổi) đặt ở cửa đọc phía khách, KHÔNG ở getter dùng chung với lúc lưu.**
-Một getter vừa phục vụ hiển thị vừa được gọi lúc `save`: làm tròn ở đó là **ghi số tròn vào database**
-(thứ chủ site cấm). Đặt ở hàm tính hiển thị + filter giá của WooCommerce; checkout/email ăn theo vì
-lấy số từ giỏ. Và **tròn đơn giá TRƯỚC khi nhân số lượng** để "324.000đ/kg × 21kg" in ra đúng bằng
-tổng bên cạnh (6.804.000) — tròn ở cuối là phép tính in ra sai, thứ khách thấy ngay. (09/09/2026)
+Một getter vừa phục vụ hiển thị vừa được gọi lúc `save`: làm tròn ở đó là **ghi số tròn vào database**.
+Đặt ở hàm tính hiển thị + filter giá của WooCommerce; checkout/email ăn theo vì lấy số từ giỏ. Và **tròn đơn
+giá TRƯỚC khi nhân số lượng** để "324.000đ/kg × 21kg" in ra đúng bằng tổng bên cạnh — tròn ở cuối là
+phép tính in ra sai, thứ khách thấy ngay.
 
 **Bề mặt bị khung cha dựng lại thì phải re-bind, đừng init từ snapshot.** Trong cột tóm tắt checkout,
 WooCommerce bắn `updated_checkout` **huỷ và dựng lại** toàn bộ DOM thành phần tử mới (mất cờ đã-gắn);
-handler gắn một lần lúc tải, đọc biến **chụp lúc tải trang** nên không bao giờ đổi (ô Tên công ty + MST
-kẹt `display:none`). Đọc trạng thái sống và gắn lại sau mỗi `updated_checkout`. (07/09/2026)
+handler gắn một lần lúc tải, đọc biến **chụp lúc tải trang** nên không bao giờ đổi. Đọc trạng thái sống
+và gắn lại sau mỗi `updated_checkout`.
 
 ### Kiểm đúng runtime state
 
@@ -560,16 +557,16 @@ chứng hỏng theo nghĩa là lỗi nằm ở tầng chung (loader, cache, host
 là lỗi khu trú đúng chỗ vừa đụng.
 
 **Đừng đọc lại chính cái mình vừa thao tác.** DOM sau khi tự bấm, biến sau khi tự gán, trang chưa kịp
-tải lại sau khi tự submit — tất cả đều xác nhận mình. Một lần (10/09/2026): bấm tick → Lưu → chờ → đọc
+tải lại sau khi tự submit — tất cả đều xác nhận mình. Một lần: bấm tick → Lưu → chờ → đọc
 `checkbox.checked` ra `true` → kết luận "đã lưu"; cái `true` đó là cú bấm còn trong DOM cũ, trang chưa
-reload. Từ phép đo mù đó đẻ ra **ba giả thuyết sai và hai gói deploy** (1.24.45, 1.24.46) chữa một lỗi
-không tồn tại — sự thật là công tắc "Ẩn hàng hết" của WooCommerce đang TẮT. Đọc DOM sau khi tự thao tác
-thì phải tải lại trang từ server trước khi đo. **Deploy không phải phép chẩn đoán:** chưa có quan sát
-chống lưng thì đi tìm quan sát, đừng đẩy một bản vá rồi xem có đỡ không.
+reload. Từ phép đo mù đó đẻ ra **ba giả thuyết sai và hai gói deploy** chữa một lỗi không tồn tại —
+sự thật là một công tắc native đang TẮT. Đọc DOM sau khi tự thao tác thì tải lại trang từ server trước
+khi đo. **Deploy không phải phép chẩn đoán:** chưa có quan sát chống lưng thì đi tìm quan sát, đừng đẩy
+một bản vá rồi xem có đỡ không.
 
 **Khi đo trên một danh sách đang sắp xếp, "không thấy ở trang 1" không phân biệt "đã lọc" với "chưa
-tới lượt".** Kiểm ẩn hàng hết trên `/tat-ca-san-pham/` sắp theo "Mới nhất" — trang 1 vốn không có hàng
-hết, suýt kết luận ngược; phải mở **trang 12** mới thấy `outofstock` còn nguyên.
+tới lượt".** Kiểm ẩn hàng hết trên danh sách sắp theo "Mới nhất" — trang 1 vốn không có hàng hết, suýt
+kết luận ngược; phải xác định trang chứa ca cần tìm (trang 12) trước khi kết luận.
 
 ### Đọc kết quả sau deploy
 
@@ -604,9 +601,9 @@ mọi PASS từ nó là `NOT_TESTED`.
 **Màn cực hẹp (280–330px) đo trên SITE THẬT, không trên prototype.** Prototype thường chèn `<style>`
 cuối body và script tự đặt `data-*` mà production không có (một nút giỏ hiện ô rỗng vì
 `content:attr(data-n)` không ai đặt `data-n`). Và phép "phần tử vượt viewport" **không bắt được chữ bị
-cắt trong nút** — nút vẫn nằm trong màn: nút "Thêm vào giỏ" cắt còn "Thêm vào gi" ở 124/234 mặt hàng
-khi đơn vị dài, chỉ bắt được bằng cách đo Range của text so với hộp cha. Đo thẳng ở 280/300/320/344/390
-trên host bằng chrome-devtools. (10–11/09/2026)
+cắt trong nút** — nút vẫn nằm trong màn: nút "Thêm vào giỏ" cắt còn "Thêm vào gi" khi đơn vị dài, chỉ
+bắt được bằng cách đo Range của text so với hộp cha. Đo thẳng ở 280/300/320/344/390 trên host bằng
+DevTools.
 
 ---
 
@@ -642,9 +639,8 @@ giá trị thiếu ngoài quy tắc đã duyệt.
   lần nhập. Trống = dòng không đổi; chỉ ở cột được chỉ định thì trống/gạch (`- – — x X`) mới là "xoá",
   và phải cảnh báo + tô màu riêng, **không trộn vào số "N ô sẽ đổi"**.
 - **Đọc MỌI hàng tiêu đề; ánh xạ cột do người nhập chốt.** File thật có hai hàng tiêu đề (tiếng Việt +
-  tên trường hệ thống `retail_vat`/`ws_vat`); đọc mỗi hàng đầu là bỏ đúng cột cần. Tên cột từ hệ thống
-  khác không trùng → đoán mù là ghi vào trường sai. Hệ thống đoán, người xác nhận qua ô chọn + ô "dữ
-  liệu bắt đầu từ dòng mấy".
+  tên trường hệ thống); đọc mỗi hàng đầu là bỏ đúng cột cần. Tên cột từ hệ thống khác không trùng → đoán
+  mù là ghi vào trường sai. Hệ thống đoán, người xác nhận qua ô chọn + ô "dữ liệu bắt đầu từ dòng mấy".
 - **"0đ" đọc thành MIỄN PHÍ.** Dòng không mang giá trị nào không được là ứng viên tạo bản ghi — chặn ở
   **cả trình duyệt lẫn server** vì ai gọi thẳng endpoint cũng phải qua cùng luật.
 - **Ngưỡng phép soát hiệu chuẩn trên FILE THẬT, không theo số trong kế hoạch.** Ngưỡng cứng "vắng > 40
@@ -671,21 +667,21 @@ Hai tính năng cùng chạm một file dùng chung (`functions.php`, CSS toàn 
 
 ## Nhiều worktree cùng deploy — nhìn thấy nhau bằng sổ, không bằng trí nhớ
 
-Một repo nhiều worktree thì mỗi phiên có **cây làm việc riêng**, nên file điều phối đặt
-trong repo không ai thấy của ai — đúng cái bệnh cần chữa. Chỗ duy nhất dùng chung là `.git`.
+Một repo nhiều worktree thì mỗi phiên có **cây làm việc riêng**, nên file điều phối đặt trong repo
+không ai thấy của ai — đúng cái bệnh cần chữa. Chỗ duy nhất dùng chung là `.git`.
 
-**Đã trả giá (du-an-a.example, 05/09/2026, 13 worktree, một buổi):**
+**Đã trả giá (một site WooCommerce, 13 worktree, một buổi):**
 
 | Chuyện | Cơ chế |
 |---|---|
 | version `1.24.1` dùng trùng | hai phiên **tự đặt** số cho hai gói khác nhau; về sau không ai phân biệt được host chạy bản của ai |
 | tính năng banner bị tắt | 6 file sống trên host mà `main` không có, nên một đợt giao `functions.php` dựng từ `main` xoá mất hai dòng `require`. `function_exists()` làm nó hỏng **im lặng**: `php -l` sạch, không một dòng lỗi, trang chỉ suy biến về nội dung demo |
-| 287 dòng suýt mất | `inc/bao-gia.php` trên host chưa từng commit; phiên khác suýt đè bản từ `main` |
+| 287 dòng suýt mất | một file `inc/` 287 dòng trên host chưa từng commit; phiên khác suýt đè bản từ `main` |
 | gói đã mở vẫn cũ | chủ site kéo trong lúc code còn sửa — **gói đã mở thì phải chép đè lại và nói rõ** |
 
-Ba chuyện đầu là một chuyện: **host là nguồn sự thật thứ hai mà git không theo dõi.**
-Deploy diễn ra ngoài git, nên mỗi lần ai đó đẩy một file chưa commit thì host và git lệch
-thêm một nấc, và nấc đó chỉ lộ ra khi phiên khác vô tình đè lên.
+Ba chuyện đầu là một chuyện: **host là nguồn sự thật thứ hai mà git không theo dõi.** Deploy diễn ra
+ngoài git, nên mỗi lần ai đó đẩy một file chưa commit thì host và git lệch thêm một nấc, và nấc đó chỉ
+lộ ra khi phiên khác vô tình đè lên.
 
 ### Bốn bước bắt buộc, mỗi bước một lệnh
 
@@ -693,23 +689,25 @@ thêm một nấc, và nấc đó chỉ lộ ra khi phiên khác vô tình đè 
 S=skills/wp-delivery/scripts; R="<gốc repo>"
 
 # 1. TRƯỚC KHI SỬA — giữ chỗ, tự rải file cảnh báo vào gốc MỌI cây
-python $S/wp_lock.py --repo "$R" --claim --branch <nhánh>     --files functions.php assets/css/main.css --note "<đợt gì, host x -> y>"
+python $S/wp_lock.py --repo "$R" --claim --branch <nhánh> \
+    --files functions.php assets/css/main.css --note "<đợt gì, host x -> y>"
 
 # 2. XIN SỐ VERSION — không bao giờ tự đặt
 python $S/wp_lock.py --repo "$R" --next-version --site "$SITE" --theme "$THEME"
 
-# 3. TRƯỚC KHI DỰNG GÓI — cổng liên worktree, 6 phép kiểm
-python $S/wp_deploy_gate.py --repo "$R" --site "$SITE" --theme "$THEME"     --branch <nhánh> --version <số vừa xin> --files <file...>
+# 3. TRƯỚC KHI DỰNG GÓI — cổng liên worktree
+python $S/wp_deploy_gate.py --repo "$R" --site "$SITE" --theme "$THEME" \
+    --branch <nhánh> --version <số vừa xin> --files <file...>
 
 # 4. SAU KHI LÊN HOST VÀ XÁC MINH — ghi nhật ký rồi trả chỗ
-python $S/wp_lock.py --repo "$R" --log --branch <nhánh> --version <số>     --status PRODUCTION_VERIFIED
+python $S/wp_lock.py --repo "$R" --log --branch <nhánh> --version <số> --status PRODUCTION_VERIFIED
 python $S/wp_lock.py --repo "$R" --release --branch <nhánh>
 ```
 
-### `confirm current code` — cổng phải trả lời được sáu câu
+### Cổng deploy phải trả lời được tám câu
 
-`wp_freshness.py` hỏi "local có khớp host không" và chỉ so được asset công khai.
-`wp_deploy_gate.py` hỏi câu đắt hơn: **trên host đang có thứ gì mà git không biết.**
+`wp_freshness.py` hỏi "local có khớp host không" và chỉ so được asset công khai. `wp_deploy_gate.py`
+hỏi câu đắt hơn: **trên host đang có thứ gì mà git không biết.**
 
 | # | Phép kiểm | Chặn cái gì |
 |---|---|---|
@@ -722,72 +720,49 @@ python $S/wp_lock.py --repo "$R" --release --branch <nhánh>
 | 7 | version nhánh có tụt sau host | commit bump cũ lọt qua merge, kéo `main` tụt số |
 | 8 | đợt đã lên host mà nhánh chưa merge | chính khe đã sinh ra ca banner |
 
-Phép kiểm 6 lấy hợp mọi file `.php` trong **toàn bộ cây theme và `wp-content/mu-plugins/`**
-của **mọi nhánh**, hỏi host từng file bằng mã HTTP, rồi báo file nào trả 200 mà `main`
-không có.
+Phép kiểm 6 lấy hợp mọi file `.php` trong **toàn bộ cây theme và `wp-content/mu-plugins/`** của **mọi
+nhánh**, hỏi host từng file bằng mã HTTP, rồi báo file nào trả 200 mà `main` không có.
 
-**Ba lỗi của bản đầu, do một phiên khác tìm ra khi dùng thật — ghi lại vì cả ba là lỗi
-thiết kế phép kiểm, không phải lỗi code:**
+**Ba lỗi của bản đầu, đều là lỗi thiết kế phép kiểm:** (1) *phạm vi quét quá hẹp* — bản đầu chỉ quét
+`inc/` và `template-parts/`, **mù với `mu-plugins/`**, bỏ lọt hai mu-plugin đang phục vụ điều hướng
+toàn site; "quét file PHP" nghe như quét tất cả nhưng nó quét hai thư mục. (2) *chặn nhầm cách làm
+đúng* — chốt version chặn cả khi số đó chính là version đang chạy trên host (một số **đi theo host**
+xuất hiện ở nhiều nhánh là đúng). (3) *không miễn cho nhánh đã merge* — sửa bằng `git merge-base
+--is-ancestor`.
 
-1. *Phạm vi quét quá hẹp.* Bản đầu chỉ quét `inc/` và `template-parts/`, nên **mù với
-   `mu-plugins/`**. Nó bỏ lọt `mg-chuyen-muc-redirect.php` và `mg-url-danh-muc.php` —
-   hai file đang phục vụ **điều hướng toàn site** trên host mà `main` không có bản nào,
-   chỉ sống ở một nhánh chưa merge. Đúng cơ chế đã cắn tính năng banner, nạn nhân khác.
-2. *Chặn nhầm cách làm đúng.* Chốt version chặn cả khi số đó **chính là** version đang
-   chạy trên host — trong khi luật ở trên nói rõ: cùng **tự đặt** một số là hỏng, một số
-   **đi theo host** xuất hiện ở nhiều nhánh là đúng. Phép kiểm cài luật cũ hơn tài liệu.
-3. *Không miễn cho nhánh đã merge.* Nhánh đã là ancestor của `main` vẫn bị báo "đứng sau
-   main N commit". Sửa bằng `git merge-base --is-ancestor`.
+**Lỗi thứ tư, cùng họ — mã HTTP dò được SỰ TỒN TẠI, không dò được NỘI DUNG.** Server thực thi `.php`
+chứ không trả source: mọi file PHP trên host trả `200` với **0 byte** (trong khi `.css` cùng lúc trả
+nội dung thật). Nên chốt 6 kết luận đúng ở mức *file này có mặt trên host mà `main` không có*, và
+**không** kết luận được *bản trên host có giống git không*. Ai sửa thẳng qua FTP thì đợt sau dựng từ
+`main` vẫn kéo lùi file đó mà cổng vẫn báo ĐẠT. Muốn so nội dung `.php` chỉ có một đường: **tải bản
+host về qua FTP rồi diff**. Đọc "200" rất dễ thành "khớp".
 
-Bài học chung: một phép kiểm chỉ đáng tin trong đúng phạm vi nó quét, và phạm vi đó phải
-được viết ra. "Quét file PHP" nghe như quét tất cả, nhưng nó quét hai thư mục.
+**Đã hiệu chuẩn bằng chính ca hỏng:** cho `--main-ref` lùi về commit trước lúc nhánh banner được gộp,
+phép kiểm 6 chặn đúng và gọi tên đúng hai file banner; chạy lại trên `main` hiện tại thì cho qua. Thước
+đo nào chưa chạy qua ca hỏng đã biết thì mọi PASS từ nó là `NOT_TESTED`.
 
-**Lỗi thứ tư, cùng họ — mã HTTP dò được SỰ TỒN TẠI, không dò được NỘI DUNG.** Server thực
-thi `.php` chứ không trả source: mọi file PHP trên host trả `200` với **0 byte** (đo
-05/09/2026, cả `mu-plugins/` lẫn `inc/`, trong khi `.css` cùng lúc trả 127.611 byte thật).
-Nên chốt 6 kết luận đúng ở mức *file này có mặt trên host mà `main` không có*, và **không**
-kết luận được *bản trên host có giống bản trong git không*. Nếu ai đó sửa thẳng qua FTP —
-chuyện đã xảy ra với `inc/bao-gia.php` 287 dòng — thì đợt sau dựng từ `main` vẫn kéo lùi
-file đó, và cổng vẫn báo ĐẠT. Muốn so nội dung `.php` chỉ có một đường: **tải bản host về
-qua FTP rồi diff**. `CLAUDE.md` đã ghi ý này cho theme; chỗ dễ quên là nối nó với chốt 6,
-vì đọc “200” rất dễ thành “khớp”.
+### Khi hai phiên bất đồng — bên đo thắng bên suy luận
 
-**Đã hiệu chuẩn bằng chính ca hỏng:** cho `--main-ref` lùi về commit trước lúc nhánh banner
-được gộp, phép kiểm 6 chặn đúng và gọi tên đúng `inc/hero-banner.php` +
-`inc/admin-hero-banner.php`; chạy lại trên `main` hiện tại thì cho qua. Thước đo nào chưa
-chạy qua ca hỏng đã biết thì mọi PASS từ nó là `NOT_TESTED`.
-
-### Khi hai phiên bất đồng
-
-Xảy ra thật trong ngày, hai lần, và cả hai lần **bên sai là bên suy luận, bên đúng là bên đo**:
-
-- **Một quan sát không phân biệt được hai nguyên nhân thì không phải bằng chứng.** Ảnh chụp
-  trang chủ hiện chữ demo từng được dùng để kết luận "hỏng từ trước" — nhưng chữ đó xuất hiện
-  ở cả hai trường hợp.
-- **Đo đúng chuỗi.** `kl-hero-slide` (id thẻ, template luôn in) khác `#kl-hero-slide` (rule
-  CSS, chỉ in khi hàm đã nạp). Thiếu một dấu `#` là đảo ngược kết luận.
-- **Version trùng có hai loại.** Hai phiên **cùng tự đặt** một số = hỏng. Một số **đi theo
-  host** xuất hiện ở nhiều nhánh = đúng, vì `main` phải khai đúng số đang chạy.
-- **Quyết định của chủ site không đi qua phiên khác.** Một phiên báo "chủ site chốt X" không
-  phải sự đồng ý cho việc của phiên nhận tin.
+- **Một quan sát không phân biệt được hai nguyên nhân thì không phải bằng chứng.** Ảnh chụp trang chủ
+  hiện chữ demo từng được dùng để kết luận "hỏng từ trước" — nhưng chữ đó xuất hiện ở cả hai trường hợp.
+- **Đo đúng chuỗi.** `hero-slide` (id thẻ, template luôn in) khác `#hero-slide` (rule CSS, chỉ in khi
+  hàm đã nạp). Thiếu một dấu `#` là đảo ngược kết luận.
+- **Version trùng có hai loại.** Hai phiên **cùng tự đặt** một số = hỏng; một số **đi theo host** xuất
+  hiện ở nhiều nhánh = đúng.
+- **Quyết định của chủ site không đi qua phiên khác.** Một phiên báo "chủ site chốt X" không phải sự
+  đồng ý cho việc của phiên nhận tin.
 
 ### Hai bài học về việc ĐO NHẦM CÂU HỎI
 
-**Người dùng mô tả triệu chứng bằng từ của họ, không bằng từ của mình.** Chủ site báo "banner
-vẫn chưa hiển thị". Hai phiên cùng đi đo *banner có ra không* — một phiên bằng chuỗi HTML và
-mã HTTP, một phiên bằng ảnh chụp trang thật ở 1440px và 375px — và **cả hai đều đúng, cả hai
-đều vô dụng**. Ý họ là banner ra nhưng **hiển thị sai**: khung slider nhảy 36px giữa hai slide
-vì `min-height` chỉ là sàn còn chiều cao thật do lượng chữ quyết định. "Chưa hiển thị" nghĩa là
-"hiển thị không ổn". Trước khi đo, hỏi lại **họ thấy cái gì trên màn hình**; một câu tả cụ thể
-tiết kiệm hơn hai vòng đo đúng-mà-lạc-đề.
+**Người dùng mô tả triệu chứng bằng từ của họ.** Chủ site báo "banner vẫn chưa hiển thị". Hai phiên
+cùng đi đo *banner có ra không* — một bằng chuỗi HTML và mã HTTP, một bằng ảnh chụp ở 1440px và 375px —
+và **cả hai đều đúng, cả hai đều vô dụng**: ý họ là banner ra nhưng **hiển thị sai** (khung slider nhảy
+36px giữa hai slide vì `min-height` chỉ là sàn). Trước khi đo, hỏi lại **họ thấy gì trên màn hình**.
 
-**Đổi cấu trúc output là có thể làm mù chính thước đo của mình.** Cùng ca trên: bản vá thêm một
-khối `@media (max-width:767px)` cho chiều cao khung — mà harness đang dùng đúng chuỗi đó để biết
-slide có ảnh riêng cho điện thoại hay không. Sau khi vá, chuỗi ấy có mặt ở **mọi** ca nên phép đo
-báo "có" cả khi không có ảnh mobile. Sửa thành đo `background-image` bên trong khối 767px thì lần
-đầu regex non-greedy khớp nhầm khối chiều cao, báo "không" ở mọi ca — mù theo chiều ngược lại.
-Chỉ bắt được vì cho nó chạy qua ca **phải** ra "có". Sau mỗi lần đổi cấu trúc output, hiệu chuẩn
-lại thước đo bằng cả ca dương lẫn ca âm; chạy thấy "sạch" không chứng minh nó còn đo được gì.
+**Đổi cấu trúc output có thể làm mù chính thước đo của mình.** Bản vá thêm một khối `@media` cho chiều
+cao khung — mà harness đang dùng đúng chuỗi đó để biết slide có ảnh mobile hay không; sau khi vá, chuỗi
+ấy có mặt ở **mọi** ca nên phép đo báo "có" cả khi không có ảnh. Chỉ bắt được vì cho nó chạy qua ca
+**phải** ra "có". Sau mỗi lần đổi cấu trúc output, hiệu chuẩn lại thước bằng cả ca dương lẫn ca âm.
 
 ## Dừng lại và hỏi khi
 
@@ -872,27 +847,28 @@ template hoặc CSS đã gãy thật.
 ### 5. Cổng deploy liên worktree
 
 ```bash
-python skills/wp-delivery/scripts/wp_deploy_gate.py   --repo "<gốc repo>" --site https://SITE --theme THEME   --branch <nhánh> --version <số> --files <file...>
+python skills/wp-delivery/scripts/wp_deploy_gate.py \
+  --repo "<gốc repo>" --site https://SITE --theme THEME \
+  --branch <nhánh> --version <số> --files <file...>
 ```
 
-Tám phép kiểm ở mục "Nhiều worktree cùng deploy". Thoát 0 = qua · 1 = có chốt chặn hoặc có
-phép kiểm không đo được (**fail-closed**). `--chi-xem-so` chỉ in sổ. `--main-ref` để hiệu
-chuẩn lại trên một ca hỏng trong quá khứ. `--mu-rel` đổi đường dẫn `mu-plugins` nếu repo
-xếp khác.
+Tám phép kiểm ở mục "Nhiều worktree cùng deploy". Thoát 0 = qua · 1 = có chốt chặn hoặc có phép kiểm
+không đo được (**fail-closed**). `--chi-xem-so` chỉ in sổ. `--main-ref` để hiệu chuẩn lại trên một ca
+hỏng trong quá khứ. `--mu-rel` đổi đường dẫn `mu-plugins` nếu repo xếp khác. Script đọc hằng số version
+của theme để biết host đang chạy bản nào — mặc định dò `*_THEME_VERSION`, chỉnh theo theme nếu khác.
 
 ### 6. Sổ chiếm chỗ + nhật ký deploy
 
 ```bash
-python skills/wp-delivery/scripts/wp_lock.py --repo "<gốc repo>"   --claim --branch <nhánh> --files <file...> --note "<đợt gì>"
+python skills/wp-delivery/scripts/wp_lock.py --repo "<gốc repo>" \
+  --claim --branch <nhánh> --files <file...> --note "<đợt gì>"
 ```
 
-Sổ nằm ở `<.git chung>/wp-deploy/state.json` nên **mọi worktree thấy chung**. Ngoài sổ máy
-đọc, script rải `_UU-TIEN-DEPLOY.md` vào gốc mọi cây để phiên nào chạy `git status` cũng đập
-vào mắt — cách này dùng thật hôm 05/09, bốn phiên đều nhường đúng. `--next-version` cấp số kế
-tiếp từ version host cộng sổ, nên trùng số thành chuyện không thể xảy ra thay vì chuyện phải
+Sổ nằm ở `<.git chung>/wp-deploy/state.json` nên **mọi worktree thấy chung**. Ngoài sổ máy đọc, script
+rải `_UU-TIEN-DEPLOY.md` vào gốc mọi cây để phiên nào chạy `git status` cũng đập vào mắt. `--next-version`
+cấp số kế tiếp từ version host cộng sổ, nên trùng số thành chuyện không thể xảy ra thay vì chuyện phải
 nhớ. `--release` gỡ chỗ và xoá sạch file cảnh báo.
 
 ## Tài liệu đầy đủ
 
-- `(ghi chép nội bộ, không kèm trong repo)` — bài học phân theo 12 nhóm, kèm bằng chứng
-- `(ghi chép nội bộ, không kèm trong repo)` — kiến trúc v3 và lộ trình
+- `docs/KINH-NGHIEM-WORDPRESS.md` — bài học phân theo nhóm A–N, mỗi mục kèm ca hỏng và con số đã trả giá.
