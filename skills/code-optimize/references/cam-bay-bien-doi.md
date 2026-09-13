@@ -12,8 +12,8 @@ một loại thay đổi: **xoá**. Đem chúng sang phép **biến đổi** th�
 |---|---|---|---|---|---|
 | hook dời file → đổi **thứ tự đăng ký** cùng priority | — | — | — | — | `hook` (thứ tự trong bucket) |
 | `add_action` đổi **priority** | — | — | — | — | `hook` + `html` |
-| hàm tách ra với **giá trị mặc định** khác | — | — | — | — | `chu_ky` (Reflection) |
-| **mất `esc_html`** quanh `$_GET` khi dời | — | một phần, có điều kiện | — | — | `sanitise` (tĩnh) |
+| hàm tách ra với **giá trị mặc định** khác | — | — | — | — | `signatures` (Reflection) |
+| **mất `esc_html`** quanh `$_GET` khi dời | — | một phần, có điều kiện | — | — | `sanitizers` (tĩnh) |
 | `get_template_part` dời sang **sau `wp_head()`** | — | — | — | — | `asset` + `html` |
 | điều kiện **đảo chiều** canh một `add_filter` | — | — | — | — | `hook` (cạnh biến mất) |
 
@@ -45,7 +45,7 @@ hook `wp` fire. Callback bị đảo chiều không chạy ở cả hai bản �
 không có ca tiêm này thì bộ chụp sẽ được tin là đủ trong khi nó bỏ cả một giai đoạn
 lifecycle.
 
-**Lượt đầu báo `NOISE_QUA_LON` ở mặt `fire`.** Hai lượt không đổi code ra khác nhau từ ký
+**Lượt đầu báo `NOISE_TOO_HIGH` ở mặt `fire`.** Hai lượt không đổi code ra khác nhau từ ký
 tự 3523 — lượt sau đọc option từ cache còn ấm nên không fire lại `pre_option_*`. Đã lọc họ
 hook option/transient/cache. **Đánh đổi phải khai rõ:** mặt `fire` nay không trả lời được
 "có đổi tập option được đọc hay không". Một mask là một vùng mù bằng cấu trúc; cái này được
@@ -58,12 +58,12 @@ ghi lại để không ai tưởng mặt `fire` phủ cả option.
 Khi viết `code_nodes.py`:
 
 - `([^,)]+?)` **lazy** đứng trước một cái đuôi toàn optional khớp đúng **một ký tự**, nên
-  handle `'fxb-main'` bị bắt thành dấu `'`. Hậu quả: `chua_giai` phồng lên 2 vì
+  handle `'fxb-main'` bị bắt thành dấu `'`. Hậu quả: `unresolved` phồng lên 2 vì
   lỗi của chính tool — tức thước đo độ tin cậy của đồ thị bị chính tool làm vô dụng.
 - Đổi sang `[^,()]+` **greedy** thì handle đúng, nhưng tham số `src` là
   `get_template_directory_uri() . '...'` có dấu ngoặc nên char class dừng giữa đường và
-  mảng dependency **im lặng** không được đọc — cạnh `phu_thuoc` biến mất, và lần này tool
-  báo `chua_giai = 0` **trong khi đang thiếu cạnh**. Hướng này nguy hiểm hơn.
+  mảng dependency **im lặng** không được đọc — cạnh `depends_on` biến mất, và lần này tool
+  báo `unresolved = 0` **trong khi đang thiếu cạnh**. Hướng này nguy hiểm hơn.
 
 Cách đúng là cách repo đã dùng ở `go_ham.py`/`go_css.py`: **cắt theo cân bằng ngoặc** có
 xử lý chuỗi, regex chỉ để tìm điểm mở. Một regex cố bắt cả lời gọi nhiều tham số là một
@@ -109,11 +109,11 @@ phải proxy yếu, đây là proxy **có hướng sai**. Và chính README củ
 
 ## 6. Restore là một đoạn văn cho tới khi nó chạy
 
-Trước `sao_luu.py`, repo có **0 dòng code phục hồi**, **0 khẳng định test** về backup, và
+Trước `backup.py`, repo có **0 dòng code phục hồi**, **0 khẳng định test** về backup, và
 `wp-delivery/SKILL.md` có `rollback_plan: []`. `wp_safe_write.py` ghi `.bak` cạnh từng
 file — không có mốc thời điểm nhất quán của cả cây.
 
 Bài diễn tập bắt buộc (đã chạy, 23 khẳng định): làm hỏng một bản sao đúng ba kiểu và đòi
-`kiem` gọi đúng tên ba file · làm hỏng một file **bên trong** backup và đòi `phuc_hoi` từ
+`kiem` gọi đúng tên ba file · làm hỏng một file **bên trong** backup và đòi `restore` từ
 chối · **xoá hẳn cây nguồn** rồi phục hồi chỉ từ backup, so byte với bản gốc giữ riêng —
 0 lệch. Ca thứ ba là tình huống thật của một đường lùi: lúc cần nó thì cây gốc đã không còn.

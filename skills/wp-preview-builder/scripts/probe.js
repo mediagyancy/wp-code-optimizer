@@ -21,22 +21,22 @@
  *
  *   2. `viewport = 0` thì KHÔNG kết luận. Ngay sau khi trang nạp, pane có thể chưa có
  *      kích thước. Đã có ca báo "tràn 268px" hoàn toàn sai vì đo lúc ấy. Gặp
- *      `LOI_PHEP_DO` thì đợi một giây rồi đo lại, đừng đọc các số khác.
+ *      `MEASURE_ERROR` thì đợi một giây rồi đo lại, đừng đọc các số khác.
  *
  *   3. `protocol` phải là `"http:"`. Thấy `"data:"` là đang xem một bản nhúng tĩnh —
  *      JavaScript không chạy, CSS tương đối không nạp, và mọi số đo thuộc về một trang
  *      khác với trang cần đo.
  *
- *   4. Đọc `TRAN_NGANG` TRƯỚC, rồi mới tới `thu_pham_that`. `da_loc_bo_vi_vo_hai` lớn là
+ *   4. Đọc `OVERFLOW` TRƯỚC, rồi mới tới `offenders`. `ignored_count` lớn là
  *      BÌNH THƯỜNG với trang có carousel hoặc drawer — con số đó được in ra chính vì nếu
  *      không in thì danh sách thủ phạm rỗng sẽ bị đọc thành "probe bỏ sót".
  *
  * Công thức ở đây được ghim bằng khẳng định trong bộ test (`tests/test_preview.py`, khai báo
- * trong file CI): `scripts/quyet_dinh_tran.py`.
+ * trong file CI): `scripts/overflow_rule.py`.
  * Đổi sang `innerWidth` sẽ làm đỏ một test có tên.
  */
 (() => {
-  const PHIEN_BAN_PROBE = "wp-preview-builder/1.0.0";
+  const PROBE_VERSION = "wp-preview-builder/1.0.0";
 
   // Biên ở hai mức KHÁC NHAU, có chủ ý — xem SKILL.md mục 4.
   //   mức trang:   0px, tràn 1px vẫn là tràn (hiệu của hai phép đo nguyên)
@@ -49,8 +49,8 @@
 
   if (!vw) {
     return {
-      PHIEN_BAN_PROBE,
-      LOI_PHEP_DO: "viewport = 0 — mọi số đo vô nghĩa. Đợi 1 giây rồi đo lại.",
+      PROBE_VERSION,
+      MEASURE_ERROR: "viewport = 0 — mọi số đo vô nghĩa. Đợi 1 giây rồi đo lại.",
       protocol: location.protocol,
     };
   }
@@ -93,7 +93,7 @@
       el.closest("[aria-hidden='true']") ? "aria-hidden" :
       cat ? `bị cắt bởi ${cat}` : null;
     const ghi = { el: sel(el), left: px(r.left), right: px(r.right), w: px(r.width) };
-    if (boQuaVi) daLoc.push({ ...ghi, bo_qua_vi: boQuaVi }); else thuPham.push(ghi);
+    if (boQuaVi) daLoc.push({ ...ghi, reason: boQuaVi }); else thuPham.push(ghi);
   }
   thuPham.sort((a, b) => b.right - a.right);
 
@@ -130,20 +130,20 @@
   }
 
   return {
-    PHIEN_BAN_PROBE,
+    PROBE_VERSION,
     protocol: location.protocol,
     viewport: vw,
     clientWidth: vw,
     innerWidth: window.innerWidth,   // báo cáo để đối chiếu — KHÔNG dùng để tính
     scrollWidth,
-    TRAN_NGANG: tranNgang > 0 ? `${px(tranNgang)}px — LỖI THẬT` : "không",
-    tran_ngang_px: px(tranNgang),
-    thu_pham_that: thuPham.slice(0, 8),
-    da_loc_bo_vi_vo_hai: daLoc.length,
-    vi_du_da_loc: daLoc.slice(0, 3),
-    chu_nho_nhat: `${chuNhoNhat}px — ${chuNhoNhatO}`,
-    vung_cham_duoi_40px: vungChamNho.length,
-    vi_du_vung_cham: vungChamNho.slice(0, 5),
-    dang_dang_nhap: !!document.querySelector("#wpadminbar, .admin-bar, [data-logged-in='true']"),
+    OVERFLOW_STATUS: tranNgang > 0 ? `${px(tranNgang)}px — LỖI THẬT` : "không",
+    overflow_px: px(tranNgang),
+    offenders: thuPham.slice(0, 8),
+    ignored_count: daLoc.length,
+    ignored_samples: daLoc.slice(0, 3),
+    min_font: `${chuNhoNhat}px — ${chuNhoNhatO}`,
+    small_targets: vungChamNho.length,
+    small_target_samples: vungChamNho.slice(0, 5),
+    logged_in: !!document.querySelector("#wpadminbar, .admin-bar, [data-logged-in='true']"),
   };
 })();

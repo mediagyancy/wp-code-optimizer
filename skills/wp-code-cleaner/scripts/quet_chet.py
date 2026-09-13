@@ -30,7 +30,7 @@ Giới hạn phải biết trước khi tin kết quả:
 
 Dùng:
   python quet_chet.py --theme "đường/dẫn/theme"
-  python quet_chet.py --theme "..." --loader functions.php --tien-to mytheme_
+  python quet_chet.py --theme "..." --loader functions.php --prefix mytheme_
 """
 import argparse
 import json
@@ -115,7 +115,7 @@ def co_hook(s):
 # khớp nhầm kiểu này. Con số nhiễu đó tự nó vô hại, nhưng nó làm cảnh báo
 # "đừng tin mục 1" bật lên vô cớ — và một cảnh báo bật sai vài lần là một cảnh
 # báo người ta thôi đọc.
-RE_NAP = re.compile(
+RE_REQUIRE = re.compile(
     r"\b(?:require|include)(?:_once)?(?![A-Za-z0-9_])\s*(?:\(\s*)?([^;]+?)\s*\)?\s*;", re.I)
 
 
@@ -132,7 +132,7 @@ def tim_require(s, tu_file, src):
     được thì đếm vào "không phân giải được" và in ra.
     """
     ra, mu = set(), 0
-    for m in RE_NAP.finditer(khong_dau_giu_chuoi(s)):
+    for m in RE_REQUIRE.finditer(khong_dau_giu_chuoi(s)):
         bieu = m.group(1)
         chuoi = re.findall(r"'([^']*)'|\"([^\"]*)\"", bieu)
         phan = "".join(a or b for a, b in chuoi).strip()
@@ -202,11 +202,11 @@ def dung_do_thi(theme, loader):
         ngan.extend(canh[f] - thay)
 
     chet = sorted(set(src) - thay)
-    hook_khong_nap = sorted(f for f in chet if co_hook(src[f]))
-    return src, chu, canh, chet, hook_khong_nap, mu_tong, (loader in src)
+    unloaded_hooks = sorted(f for f in chet if co_hook(src[f]))
+    return src, chu, canh, chet, unloaded_hooks, mu_tong, (loader in src)
 
 
-def ham_chet(theme, src, chu, tien_to):
+def dead_functions(theme, src, chu, tien_to):
     js = {rel(p, theme): doc(p) for p in quet_file(theme, (".js",))}
     khoi = khong_dau("\n".join(src.values())) + "\n" + "\n".join(js.values())
     ra = []
@@ -266,19 +266,19 @@ def main():
     ap.add_argument("--theme", required=True)
     ap.add_argument("--loader", default="functions.php",
                     help="file nạp chính, tính từ gốc theme (mặc định functions.php)")
-    ap.add_argument("--tien-to", default="", help="lọc hàm/class theo tiền tố, ngăn bằng dấu phẩy")
+    ap.add_argument("--prefix", default="", help="lọc hàm/class theo tiền tố, ngăn bằng dấu phẩy")
     ap.add_argument("--json", default="")
     a = ap.parse_args()
 
     theme = a.theme.rstrip("/\\")
-    tien_to = [x.strip() for x in a.tien_to.split(",") if x.strip()]
-    src, chu, canh, chet, hook_kn, mu, co_loader = dung_do_thi(theme, a.loader)
+    tien_to = [x.strip() for x in a.prefix.split(",") if x.strip()]
+    src, chu, canh, chet, hook_kn, mu, has_loader = dung_do_thi(theme, a.loader)
 
     print(f"THEME  {theme}")
     print(f"       {len(src)} file PHP · {len(chu)} hàm · loader `{a.loader}` "
-          f"{'tìm thấy' if co_loader else '*** KHÔNG TÌM THẤY ***'}\n")
+          f"{'tìm thấy' if has_loader else '*** KHÔNG TÌM THẤY ***'}\n")
 
-    if not co_loader:
+    if not has_loader:
         print("!! Không thấy file nạp chính. Nếu theme dùng tên khác, truyền --loader.")
         print("!! Chưa có nó thì mục 1 và 2 gần như chắc chắn sai — dừng đọc ở đây.\n")
     if mu:
@@ -311,7 +311,7 @@ def main():
     print("=" * 74)
     print("3. HÀM ĐỊNH NGHĨA NHƯNG KHÔNG NƠI NÀO GỌI")
     print("=" * 74)
-    hc = ham_chet(theme, src, chu, tien_to)
+    hc = dead_functions(theme, src, chu, tien_to)
     for ten, f in hc:
         print(f"   {ten:44s} {f}")
     print(f"   -> {len(hc)} hàm" if hc else "   (không có)")
@@ -339,8 +339,8 @@ def main():
     print("  · Xoá xong phải QUÉT LẠI: xoá file làm chết thêm hàm ở file khác.")
 
     if a.json:
-        json.dump({"file_chet": chet, "hook_khong_nap": hook_kn, "ham_chet": hc,
-                   "class_nghi": cn, "require_khong_phan_giai": mu, "co_loader": co_loader},
+        json.dump({"dead_files": chet, "unloaded_hooks": hook_kn, "dead_functions": hc,
+                   "class_nghi": cn, "unresolved_requires": mu, "has_loader": has_loader},
                   open(a.json, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
         print(f"\nđã ghi {a.json}")
 

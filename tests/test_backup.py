@@ -10,14 +10,14 @@ Bài diễn tập có ba phần, và phần thứ ba là phần duy nhất đán
   1. HIỆU CHUẨN phép so: làm hỏng một bản sao đúng ba kiểu (sửa · xoá · thêm) rồi đòi
      `kiem` gọi đúng tên ba file đó. Phép so chưa bắt được ca hỏng thì mọi "0 lệch" nó
      báo sau đó đều vô nghĩa.
-  2. Backup phải TỰ NHẤT QUÁN: làm hỏng một file BÊN TRONG backup, `phuc_hoi` phải từ
+  2. Backup phải TỰ NHẤT QUÁN: làm hỏng một file BÊN TRONG backup, `restore` phải từ
      chối — backup hỏng mà đem phục hồi thì hỏng lan sang cây đích và không còn bản nào
      tốt.
   3. PHỤC HỒI KHI NGUỒN ĐÃ MẤT: xoá hẳn cây nguồn, phục hồi chỉ từ thư mục backup, so
      byte với một bản gốc giữ ở nơi khác. Đây là tình huống thật của một đường lùi —
      lúc cần nó thì cây gốc đã không còn.
 
-    python tests/test_sao_luu.py
+    python tests/test_backup.py
 """
 import io
 import json
@@ -32,7 +32,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 GOC = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(GOC)
-SCRIPT = os.path.join(REPO, "skills", "code-optimize", "scripts", "sao_luu.py")
+SCRIPT = os.path.join(REPO, "skills", "code-optimize", "scripts", "backup.py")
 NGUON_FIXTURE = os.path.join(GOC, "integration", "fixture-bien-doi")
 
 dat, hong = [], []
@@ -83,21 +83,21 @@ def chay_trong(tmp):
     print("SAO LƯU + PHỤC HỒI — diễn tập")
     print("=" * 70)
 
-    print("\n[1] luu")
-    ma, ra = chay("luu", "--nguon", goc, "--ra", bk)
-    kiem("luu xong, exit 0", ma == 0, ra[-400:])
+    print("\n[1] save")
+    ma, ra = chay("save", "--source", goc, "--out", bk)
+    kiem("save xong, exit 0", ma == 0, ra[-400:])
     mp = os.path.join(bk, "manifest.json")
     kiem("có manifest.json", os.path.isfile(mp))
     m = json.load(io.open(mp, encoding="utf-8")) if os.path.isfile(mp) else {}
-    kiem(f"manifest đếm đúng {so_file_goc} file", m.get("so_file") == so_file_goc,
-         f"manifest {m.get('so_file')}")
+    kiem(f"manifest đếm đúng {so_file_goc} file", m.get("file_count") == so_file_goc,
+         f"manifest {m.get('file_count')}")
     kiem("mỗi file có sha256 64 ký tự",
          all(len(v["sha256"]) == 64 for v in m.get("file", {}).values()))
-    ma, _ = chay("luu", "--nguon", goc, "--ra", bk)
-    kiem("luu lần hai vào cùng chỗ bị TỪ CHỐI (không ghi đè backup)", ma == 3, f"exit={ma}")
+    ma, _ = chay("save", "--source", goc, "--out", bk)
+    kiem("save lần hai vào cùng chỗ bị REFUSED (không ghi đè backup)", ma == 3, f"exit={ma}")
 
     print("\n[2] kiem — hiệu chuẩn trên ba kiểu hỏng")
-    ma, ra = chay("kiem", "--tu", bk, "--so-voi", goc)
+    ma, ra = chay("check", "--from", bk, "--against", goc)
     kiem("cây chưa đổi → 0 lệch, exit 0", ma == 0 and "0 file lech" in ra, ra[-300:])
 
     hong_copy = os.path.join(tmp, "hong")
@@ -105,43 +105,43 @@ def chay_trong(tmp):
     io.open(os.path.join(hong_copy, "inc", "tham-so.php"), "a", encoding="utf-8").write("\n// sua\n")
     os.remove(os.path.join(hong_copy, "inc", "hook-b.php"))
     io.open(os.path.join(hong_copy, "inc", "moi.php"), "w", encoding="utf-8").write("<?php\n")
-    ma, ra = chay("kiem", "--tu", bk, "--so-voi", hong_copy)
+    ma, ra = chay("check", "--from", bk, "--against", hong_copy)
     kiem("cây hỏng → exit 1", ma == 1, f"exit={ma}")
     kiem("gọi đúng file SỬA", "KHAC" in ra and "inc/tham-so.php" in ra, ra[-500:])
     kiem("gọi đúng file XOÁ", "THIEU" in ra and "inc/hook-b.php" in ra, ra[-500:])
     kiem("gọi đúng file THÊM", "THEM" in ra and "inc/moi.php" in ra, ra[-500:])
     kiem("đếm đúng 3 lệch, không hơn", "3 file lech" in ra, ra[-300:])
 
-    print("\n[3] --bo-cr — chỉ bỏ qua CRLF, không bỏ qua thay đổi thật")
+    print("\n[3] --ignore-cr — chỉ bỏ qua CRLF, không bỏ qua thay đổi thật")
     crlf = os.path.join(tmp, "crlf")
     shutil.copytree(goc, crlf)
     p = os.path.join(crlf, "index.php")
     d = open(p, "rb").read().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
     open(p, "wb").write(d)
-    ma1, _ = chay("kiem", "--tu", bk, "--so-voi", crlf)
-    ma2, _ = chay("kiem", "--tu", bk, "--so-voi", crlf, "--bo-cr")
-    kiem("đổi LF→CRLF: không cờ thì LỆCH, có --bo-cr thì KHỚP", ma1 == 1 and ma2 == 0,
+    ma1, _ = chay("check", "--from", bk, "--against", crlf)
+    ma2, _ = chay("check", "--from", bk, "--against", crlf, "--ignore-cr")
+    kiem("đổi LF→CRLF: không cờ thì LỆCH, có --ignore-cr thì KHỚP", ma1 == 1 and ma2 == 0,
          f"khong co={ma1} co_cr={ma2}")
     io.open(os.path.join(crlf, "footer.php"), "a", encoding="utf-8").write("x")
-    ma3, ra = chay("kiem", "--tu", bk, "--so-voi", crlf, "--bo-cr")
-    kiem("--bo-cr KHÔNG che được thay đổi nội dung thật", ma3 == 1 and "footer.php" in ra,
+    ma3, ra = chay("check", "--from", bk, "--against", crlf, "--ignore-cr")
+    kiem("--ignore-cr KHÔNG che được thay đổi nội dung thật", ma3 == 1 and "footer.php" in ra,
          f"exit={ma3}")
 
-    print("\n[4] phuc_hoi — thử trước, ghi sau")
+    print("\n[4] restore — thử trước, ghi sau")
     dich = os.path.join(tmp, "dich")
-    ma, ra = chay("phuc_hoi", "--tu", bk, "--den", dich)
+    ma, ra = chay("restore", "--from", bk, "--to", dich)
     kiem("mặc định là THỬ, không ghi gì", ma == 0 and not os.path.exists(dich), ra[-300:])
     os.makedirs(dich)
     io.open(os.path.join(dich, "co-san.txt"), "w").write("x")
-    ma, _ = chay("phuc_hoi", "--tu", bk, "--den", dich, "--ghi")
-    kiem("cây đích không rỗng → TỪ CHỐI nếu không có --de-len", ma == 3, f"exit={ma}")
+    ma, _ = chay("restore", "--from", bk, "--to", dich, "--write")
+    kiem("cây đích không rỗng → TỪ CHỐI nếu không có --overwrite", ma == 3, f"exit={ma}")
 
     print("\n[5] backup phải TỰ NHẤT QUÁN trước khi được dùng")
     bk_hong = os.path.join(tmp, "backup-hong")
     shutil.copytree(bk, bk_hong)
     io.open(os.path.join(bk_hong, "cay", "header.php"), "a", encoding="utf-8").write("!")
-    ma, ra = chay("phuc_hoi", "--tu", bk_hong, "--den", os.path.join(tmp, "dich2"), "--ghi")
-    kiem("backup bị sửa bên trong → phuc_hoi TỪ CHỐI, exit 5", ma == 5, f"exit={ma}")
+    ma, ra = chay("restore", "--from", bk_hong, "--to", os.path.join(tmp, "dich2"), "--write")
+    kiem("backup bị sửa bên trong → restore TỪ CHỐI, exit 5", ma == 5, f"exit={ma}")
     kiem("nói rõ là backup không tự nhất quán", "KHONG tu nhat quan" in ra, ra[-300:])
     kiem("và KHÔNG tạo ra cây đích", not os.path.exists(os.path.join(tmp, "dich2")))
 
@@ -149,8 +149,8 @@ def chay_trong(tmp):
     shutil.rmtree(goc)
     kiem("cây nguồn đã bị xoá hẳn", not os.path.exists(goc))
     dich3 = os.path.join(tmp, "dich3")
-    ma, ra = chay("phuc_hoi", "--tu", bk, "--den", dich3, "--ghi")
-    kiem("phuc_hoi --ghi chạy xong, exit 0", ma == 0, ra[-400:])
+    ma, ra = chay("restore", "--from", bk, "--to", dich3, "--write")
+    kiem("restore --write chạy xong, exit 0", ma == 0, ra[-400:])
     kiem("tự kiem lại và báo 0 lệch so với manifest", "0 file lech" in ra, ra[-300:])
     lech = so_byte(chuan, dich3)
     kiem("SO BYTE với bản gốc giữ riêng: 0 file lệch", not lech, str(lech[:5]))

@@ -65,11 +65,11 @@ def so_chung(repo):
     return os.path.join(thu_muc, "state.json")
 
 
-def doc_so(duong_dan):
-    if not duong_dan or not os.path.exists(duong_dan):
+def doc_so(path):
+    if not path or not os.path.exists(path):
         return {"chiem_cho": [], "nhat_ky": []}
     try:
-        with open(duong_dan, encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             d = json.load(f)
         d.setdefault("chiem_cho", [])
         d.setdefault("nhat_ky", [])
@@ -103,11 +103,11 @@ def ver_host(site, theme, timeout=25):
     đang chạy gì", không phải "khách thấy gì" — chốt 5 so với `main`, mà
     `main` phải khai đúng bản đã nằm trên đĩa host.
     """
-    tham_so = "?cb=%d" % random.randrange(1 << 30)
+    params = "?cb=%d" % random.randrange(1 << 30)
     h = dict(UA)
     h["Cache-Control"] = "no-cache"
     h["Pragma"] = "no-cache"
-    req = urllib.request.Request(site.rstrip("/") + "/" + tham_so, headers=h)
+    req = urllib.request.Request(site.rstrip("/") + "/" + params, headers=h)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             html = r.read().decode("utf-8", "replace")
@@ -363,7 +363,7 @@ def main():
             print("  không nhánh nào đang chiếm chỗ")
         for c in d["chiem_cho"]:
             print(f"  `{c.get('nhanh')}` giữ {len(c.get('files', []))} file từ {c.get('luc')}"
-                  f"  — {c.get('ghi_chu', '')}")
+                  f"  — {c.get('note', c.get('ghi_chu', ''))}")  # ghi_chu: key cũ trong sites/*.json
             for f in c.get("files", []):
                 print(f"       {f}")
         print(f"\nNHẬT KÝ DEPLOY ({len(d['nhat_ky'])} đợt)")

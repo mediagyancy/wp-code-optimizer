@@ -15,7 +15,7 @@ Luật (CLAUDE.md §1), do chủ repo chốt ngày 13/09/2026, đảo ngược b
     phải `ERROR`/`FAILED`/`OK`.
 
 Bản nháp trước chọn tiếng Việt không dấu — sai, và chủ repo đã bác. File này thay
-`kiem_ten.py`; baseline nợ đảo chiều: tên tiếng Việt cũ là nợ, khoanh trong
+`check_names.py`; baseline nợ đảo chiều: tên tiếng Việt cũ là nợ, khoanh trong
 `tests/names-baseline.json`, ratchet chỉ được giảm.
 
 Tự hiệu chuẩn trước khi tin: gieo ca hỏng đã biết, chốt phải bắt; gieo ca đúng, chốt
@@ -55,17 +55,20 @@ MAX_CHARS = 24
 # Âm tiết tiếng Việt không dấu đã/đang xuất hiện trong tên của repo. Cố ý loại những âm
 # tiết trùng từ tiếng Anh hợp lệ (`hang`, `loc`, `bat`, `ten`, `den`, `man`, `may`, `tin`,
 # `van`, `no`, `on`, `am`, `an`, `do`, `in`, `me`, `to`, `go`) để không báo sai tên Anh.
-VIETNAMESE = set("""
-nap chua giai tong vung mu noi qua chi tinh nguon dong ghi chu ky ham bien thu pham that
-da bo vi vo hai dang nhap cho doi cu moi dat ma kiem luu phuc hoi them thieu khac khong
-duoc chay lai tran ngang nho nhat cham duoi dau sau truoc gia tri mac dinh buoc uu tien
-thuc te yeu cau sach goc cay ra vao toi gioi han mo ta ket lech dem nut canh khai phat phu
-thuoc mau dung sai hieu chuan chot cong dieu kien chan luat so phien ban truong theo tu
-nhan bang chung bai xoa quet chet ung vien nen su duong dan xac minh bao cap giu nguyen
-khoi tam lam lan luot tinh de len nghi lop tim ung_vien rieng doi_chung dung_so computed
-tap hop bat_buoc so_dong khai_o chac_chan ghi_chu chi_trong_nhay chap_nhan_mu tien_to
-so_voi bo_cr bo_qua de_len ra_json khong_chep lam_lai theme_slug giai_doan
-""".split())
+# Mỗi âm tiết mang tiền tố `z` và được bỏ khi nạp — để rename.py (quét theo ranh giới từ)
+# không đổi được chính danh sách này. Batch 13/09 đã đổi `bo_qua`→`excluded` NGAY TRONG
+# danh sách, khiến linter gọi `excluded`, `note`, `required` là tiếng Việt.
+VIETNAMESE = {w[1:] for w in """
+znap zchua zgiai ztong zvung zmu znoi zqua zchi ztinh znguon zdong zghi zchu zky zham zbien
+zthu zpham zthat zda zbo zvi zvo zhai zdang znhap zcho zdoi zcu zmoi zdat zma zkiem zluu
+zphuc zhoi zthem zthieu zkhac zkhong zduoc zchay zlai ztran zngang znho znhat zcham zduoi
+zdau zsau ztruoc zgia ztri zmac zdinh zbuoc zuu ztien zthuc zte zyeu zcau zsach zgoc zcay
+zra zvao ztoi zgioi zhan zmo zta zket zlech zdem znut zcanh zkhai zphat zphu zthuoc zmau
+zdung zsai zhieu zchuan zchot zcong zdieu zkien zchan zluat zso zphien zban ztruong ztheo
+ztu znhan zbang zchung zbai zxoa zquet zchet zung zvien znen zsu zduong zdan zxac zminh
+zbao zcap zgiu znguyen zkhoi ztam zlam zlan zluot zde zlen znghi zlop ztim zrieng ztap zhop
+zqua zgop zdoi ztheme_slug
+""".split()}
 
 FILLER = {"data", "info", "tmp", "temp", "obj", "misc", "stuff", "thing", "things", "helper",
           "util", "utils", "foo", "bar", "baz", "var", "val", "generic"}
@@ -82,6 +85,8 @@ FOREIGN = {
     "Content-Type", "User-Agent", "Accept-Encoding", "GLOBALS",
     "post_type", "posts_per_page", "DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST",
     "clientWidth", "innerWidth", "scrollWidth",
+    # Cờ của script PHP đọc qua $argv (`--theme-slug=`, `--phase=`): kebab-case là đúng cho cờ.
+    "theme-slug", "phase",
 }
 # Bốn nhãn bằng chứng có trước luật, giữ nguyên.
 EVIDENCE_LABELS = {"CONCEPT_PREVIEW", "VISUAL_PASS", "PRODUCTION_VERIFIED", "NOT_TESTED",
@@ -200,11 +205,15 @@ def names_in_reference(text):
 
 
 def calibrate():
+    # Ca hỏng ghép bằng phép cộng chuỗi để rename.py (quét theo ranh giới từ) KHÔNG đổi
+    # chúng sang tên Anh — batch 13/09 đã làm đúng thế và biến bộ hiệu chuẩn thành vô nghĩa.
+    V = lambda *parts: "_".join(parts)
     bad = [
-        ("file_nap_sau_render", "key"), ("so_file", "key"), ("KHONG_KIEM_DUOC", "code"),
-        ("--tien-to", "flag"), ("chua_giai", "key"), ("hook_tong_so", "key"),
-        ("camelCase", "key"), ("tmp_data", "key"), ("number_of_files", "key"),
-        ("ignored_because_harmless_elements", "key"), ("--chap-nhan-mu", "flag"),
+        (V("file", "nap", "sau", "render"), "key"), (V("so", "file"), "key"),
+        (V("KHONG", "KIEM", "DUOC"), "code"), ("--" + "tien-to", "flag"),
+        (V("chua", "giai"), "key"), (V("hook", "tong", "so"), "key"),
+        ("camelCase", "key"), (V("tmp", "data"), "key"), (V("number", "of", "files"), "key"),
+        (V("ignored", "because", "harmless", "elements"), "key"), ("--" + "chap-nhan-mu", "flag"),
     ]
     good = [
         ("files_after_render", "key"), ("file_count", "key"), ("NOT_CHECKABLE", "code"),

@@ -10,7 +10,7 @@ người ta không biết phải dọn cái gì.
 
 Không cần WordPress: cả hai điều kiện của cổng đều là phép kiểm tĩnh.
 
-    python tests/test_cong_clean.py
+    python tests/test_clean_gate.py
 """
 import io
 import json
@@ -58,14 +58,14 @@ def chay_trong(tmp):
     print("=" * 70)
 
     print("\n[1] Cây CHƯA dọn → CHẶN, và gọi tên đúng xác")
-    ma, ra = chay("cong_clean.py", "--theme", FX_BAN, "--backup", os.path.join(tmp, "khong-co"),
-                  "--tien-to", "fxt_")
-    kiem("exit 7 CHUA_CLEAN", ma == 7, f"exit={ma}")
+    ma, ra = chay("clean_gate.py", "--theme", FX_BAN, "--backup", os.path.join(tmp, "khong-co"),
+                  "--prefix", "fxt_")
+    kiem("exit 7 NOT_CLEAN", ma == 7, f"exit={ma}")
     kiem("gọi tên file mồ côi template-parts/mo-coi.php", "template-parts/mo-coi.php" in ra)
     kiem("gọi tên file có hook mà không được nạp", "inc/hook-khong-ai-nap.php" in ra)
     kiem("gọi tên hàm không ai gọi fxt_gia_woo", "fxt_gia_woo" in ra)
-    kiem("CHUA_CLEAN được ưu tiên báo trước KHONG_CO_DUONG_LUI (sửa code trước, backup sau)",
-         "CHUA_CLEAN" in ra.splitlines()[-2] if len(ra.splitlines()) >= 2 else False,
+    kiem("NOT_CLEAN được ưu tiên báo trước NO_ROLLBACK (sửa code trước, backup sau)",
+         "NOT_CLEAN" in ra.splitlines()[-2] if len(ra.splitlines()) >= 2 else False,
          ra[-200:])
 
     # Cây sạch = fixture-bien-doi bỏ file hook-dong.php (file đó là ca hiệu chuẩn cho cổng
@@ -81,38 +81,38 @@ def chay_trong(tmp):
     io.open(fn, "w", encoding="utf-8", newline="").write(s.replace(moc, ""))
 
     print("\n[2] Cây sạch nhưng KHÔNG có backup → CHẶN vì không có đường lùi")
-    ma, ra = chay("cong_clean.py", "--theme", sach, "--backup", os.path.join(tmp, "khong-co"),
-                  "--tien-to", "fxb_")
-    kiem("exit 8 KHONG_CO_DUONG_LUI", ma == 8, f"exit={ma}\n{ra[-400:]}")
+    ma, ra = chay("clean_gate.py", "--theme", sach, "--backup", os.path.join(tmp, "khong-co"),
+                  "--prefix", "fxb_")
+    kiem("exit 8 NO_ROLLBACK", ma == 8, f"exit={ma}\n{ra[-400:]}")
     kiem("điều kiện 1 đều đạt (cây đúng là sạch)",
-         all(x in ra for x in ("dat   co_loader", "dat   file_chet", "dat   ham_chet")), ra[-600:])
+         all(x in ra for x in ("dat   has_loader", "dat   dead_files", "dat   dead_functions")), ra[-600:])
 
     print("\n[3] Cây sạch + backup KHỚP → MỞ")
     bk = os.path.join(tmp, "backup")
-    ma, _ = chay("sao_luu.py", "luu", "--nguon", sach, "--ra", bk)
-    kiem("sao_luu.py luu xong", ma == 0)
+    ma, _ = chay("backup.py", "save", "--source", sach, "--out", bk)
+    kiem("backup.py save xong", ma == 0)
     gate = os.path.join(tmp, "gate.json")
-    ma, ra = chay("cong_clean.py", "--theme", sach, "--backup", bk, "--tien-to", "fxb_", "--ra", gate)
-    kiem("exit 0 CONG_MO", ma == 0, f"exit={ma}\n{ra[-500:]}")
-    kiem("in ra CONG_MO", "CONG_MO" in ra)
-    kiem("nói rõ đây là kết luận TĨNH, cổng graph còn phải đối chứng", "TĨNH" in ra and "cong_graph" in ra)
+    ma, ra = chay("clean_gate.py", "--theme", sach, "--backup", bk, "--prefix", "fxb_", "--out", gate)
+    kiem("exit 0 GATE_OPEN", ma == 0, f"exit={ma}\n{ra[-500:]}")
+    kiem("in ra GATE_OPEN", "GATE_OPEN" in ra)
+    kiem("nói rõ đây là kết luận TĨNH, cổng graph còn phải đối chứng", "TĨNH" in ra and "graph_gate" in ra)
     g = json.load(io.open(gate, encoding="utf-8")) if os.path.isfile(gate) else {}
-    kiem("gate.json ghi mo=true và chan=[]", g.get("mo") is True and g.get("chan") == [], str(g.get("chan")))
+    kiem("gate.json ghi mo=true và chan=[]", g.get("open") is True and g.get("blockers") == [], str(g.get("blockers")))
 
     print("\n[4] Cây TRÔI khỏi backup → đóng lại (bản trong backup không còn là bản đang chạy)")
     io.open(os.path.join(sach, "footer.php"), "a", encoding="utf-8").write("\n<!-- sua sau backup -->\n")
-    ma, ra = chay("cong_clean.py", "--theme", sach, "--backup", bk, "--tien-to", "fxb_")
+    ma, ra = chay("clean_gate.py", "--theme", sach, "--backup", bk, "--prefix", "fxb_")
     kiem("exit 8 khi cây khác backup", ma == 8, f"exit={ma}")
     kiem("gọi tên file đã trôi", "footer.php" in ra, ra[-400:])
     # trả về khớp
     shutil.rmtree(sach)
-    ma, _ = chay("sao_luu.py", "phuc_hoi", "--tu", bk, "--den", sach, "--ghi")
+    ma, _ = chay("backup.py", "restore", "--from", bk, "--to", sach, "--write")
     kiem("phục hồi từ backup để tiếp tục", ma == 0)
 
     print("\n[5] CA ĐỐI CHỨNG NGƯỢC — gieo một file mồ côi vào cây đã mở được")
     io.open(os.path.join(sach, "inc", "mo-coi-moi.php"), "w", encoding="utf-8").write(
         "<?php\ndefined( 'ABSPATH' ) || exit;\nfunction fxb_khong_ai_goi() {}\n")
-    ma, ra = chay("cong_clean.py", "--theme", sach, "--backup", bk, "--tien-to", "fxb_")
+    ma, ra = chay("clean_gate.py", "--theme", sach, "--backup", bk, "--prefix", "fxb_")
     kiem("cổng ĐÓNG lại, exit 7", ma == 7, f"exit={ma}")
     kiem("gọi đúng tên file mồ côi vừa gieo", "inc/mo-coi-moi.php" in ra, ra[-500:])
     kiem("gọi đúng tên hàm không ai gọi vừa gieo", "fxb_khong_ai_goi" in ra, ra[-500:])

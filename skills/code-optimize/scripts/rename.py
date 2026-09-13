@@ -17,22 +17,22 @@ nhưng KHÔNG bắt được (3): chỗ bỏ sót không bao giờ đi qua C. V�
 
 Script này bắt cả ba, không cần bước trung gian:
 
-  · khớp theo RANH GIỚI TỪ — `(?<![A-Za-z0-9_])A(?![A-Za-z0-9_])`; hoặc `--chi-trong-nhay`
+  · khớp theo RANH GIỚI TỪ — `(?<![A-Za-z0-9_])A(?![A-Za-z0-9_])`; hoặc `--quoted-only`
     để chỉ đổi dạng `"A"` / `'A'` (key JSON, mã lý do);
-  · chốt TRƯỚC: `đếm(B) == 0`, không thì `VA_CHAM` và dừng; in mọi `file:dòng` sẽ đụng;
-  · mặc định CHỈ THỬ; `--ghi` mới đổi thật, và chỉ khi cây git SẠCH hoặc có `--backup`
-    do `sao_luu.py luu` tạo — đó là đường lùi CỦA NGƯỜI. Đường lùi CỦA SCRIPT là snapshot
+  · chốt TRƯỚC: `đếm(B) == 0`, không thì `NAME_COLLISION` và dừng; in mọi `file:dòng` sẽ đụng;
+  · mặc định CHỈ THỬ; `--write` mới đổi thật, và chỉ khi cây git SẠCH hoặc có `--backup`
+    do `backup.py save` tạo — đó là đường lùi CỦA NGƯỜI. Đường lùi CỦA SCRIPT là snapshot
     byte của từng file đụng tới, chụp trước khi sửa: `git checkout` trên Windows trả về
     CRLF cho file LF nên không byte-exact, đã đo;
   · chốt SAU: `đếm(A) == 0` và `đếm(B) == n` — khác là bỏ sót hoặc đụng nhầm, phục hồi;
-  · `--kiem "<lệnh>"` (lặp được): chạy sau khi đổi; bất kỳ lệnh nào exit ≠ 0 → phục hồi
+  · `--check "<lệnh>"` (lặp được): chạy sau khi đổi; bất kỳ lệnh nào exit ≠ 0 → phục hồi
     toàn bộ file đã đụng và thoát ≠ 0. Đổi tên mà test đỏ thì chưa đổi xong.
 
-    python doi_ten.py --cu dynamic_unresolved --moi chua_giai --goc . --chi-trong-nhay
-    python doi_ten.py --cu A --moi B --goc . --ghi --kiem "python tests/chay_test.py"
+    python rename.py --old dynamic_unresolved --new unresolved --root . --quoted-only
+    python rename.py --old A --new B --root . --write --check "python tests/chay_test.py"
 
 Exit: 0 xong · 3 từ chối (cây bẩn / va chạm / không có gì để đổi) · 5 chốt sau lệch,
-đã phục hồi · 6 test đỏ, đã phục hồi · 4 KHONG_KIEM_DUOC
+đã phục hồi · 6 test đỏ, đã phục hồi · 4 NOT_CHECKABLE
 """
 import argparse
 import io
@@ -46,8 +46,9 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
-BO_QUA_TM = (".git", "__pycache__", ".wp-it", "node_modules", "vendor")
-DUOI = (".py", ".php", ".js", ".md", ".json", ".yml", ".yaml", ".txt", ".css", ".html")
+SKIP_DIRS = (".git", "__pycache__", ".wp-it", "node_modules", "vendor",
+             "fixture-theme", "fixture-bien-doi", "fixtures")   # fixture = code WP gia, khong doi ten
+EXTENSIONS = (".py", ".php", ".js", ".md", ".json", ".yml", ".yaml", ".txt", ".css", ".html")
 
 
 def mau(ten, chi_trong_nhay):
@@ -59,9 +60,9 @@ def mau(ten, chi_trong_nhay):
 
 def liet_ke(goc):
     for dp, dn, fn in os.walk(goc):
-        dn[:] = sorted(d for d in dn if d not in BO_QUA_TM)
+        dn[:] = sorted(d for d in dn if d not in SKIP_DIRS)
         for f in sorted(fn):
-            if f.endswith(DUOI):
+            if f.endswith(EXTENSIONS):
                 yield os.path.join(dp, f)
 
 
@@ -106,7 +107,7 @@ def git_sach(goc):
     return r.stdout.strip() == ""
 
 
-def phuc_hoi(snapshot):
+def restore(snapshot):
     """Trả từng file về đúng BYTE đã chụp trước khi đụng.
 
     Không dùng `git checkout --` để phục hồi, dù cây git sạch là điều kiện bắt buộc.
@@ -129,39 +130,42 @@ def phuc_hoi(snapshot):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--cu", required=True, help="ten cu A")
-    ap.add_argument("--moi", required=True, help="ten moi B")
-    ap.add_argument("--goc", default=".", help="thu muc goc de quet")
-    ap.add_argument("--chi-trong-nhay", action="store_true",
+    ap.add_argument("--old", required=True, help="ten cu A")
+    ap.add_argument("--new", required=True, help="ten moi B")
+    ap.add_argument("--root", default=".", help="thu muc goc de quet")
+    ap.add_argument("--quoted-only", action="store_true",
                     help="chi doi dang \"A\"/'A' — dung cho key JSON va ma ly do")
-    ap.add_argument("--ghi", action="store_true", help="doi that (mac dinh chi thu)")
-    ap.add_argument("--backup", default="", help="thu muc backup do sao_luu.py luu tao (cay khong phai git)")
-    ap.add_argument("--kiem", action="append", default=[],
+    ap.add_argument("--write", action="store_true", help="doi that (mac dinh chi thu)")
+    ap.add_argument("--backup", default="", help="thu muc backup do backup.py save tao (cay khong phai git)")
+    ap.add_argument("--merge", action="store_true",
+                    help="cho phep ten moi DA ton tai (gop co chu y); chot sau doi thanh dem(B) == n + dem(B) truoc")
+    ap.add_argument("--check", action="append", default=[],
                     help="lenh kiem sau khi doi; lap duoc; exit khac 0 thi phuc hoi")
     a = ap.parse_args()
 
-    goc = os.path.abspath(a.goc)
+    goc = os.path.abspath(a.root)
     if not os.path.isdir(goc):
-        print("KHONG_KIEM_DUOC: khong thay " + goc)
+        print("NOT_CHECKABLE: khong thay " + goc)
         return 4
-    if a.cu == a.moi:
-        print("TU_CHOI: ten cu va ten moi giong nhau")
+    if a.old == a.new:
+        print("REFUSED: ten cu va ten moi giong nhau")
         return 3
 
-    rx_cu, rx_moi = mau(a.cu, a.chi_trong_nhay), mau(a.moi, a.chi_trong_nhay)
+    rx_cu, rx_moi = mau(a.old, a.quoted_only), mau(a.new, a.quoted_only)
 
     # ── chốt TRƯỚC
     co_cu = dem(goc, rx_cu)
     co_moi = dem(goc, rx_moi)
     n = tong(co_cu)
     print("=" * 72)
-    print(f"DOI TEN  {a.cu}  ->  {a.moi}" + ("   (chi trong nhay)" if a.chi_trong_nhay else "   (ranh gioi tu)"))
+    print(f"DOI TEN  {a.old}  ->  {a.new}" + ("   (chi trong nhay)" if a.quoted_only else "   (ranh gioi tu)"))
     print("=" * 72)
     if n == 0:
-        print("TU_CHOI: khong thay ten cu o dau — khong co gi de doi")
+        print("REFUSED: khong thay ten cu o dau — khong co gi de doi")
         return 3
-    if tong(co_moi):
-        print(f"VA_CHAM: ten moi `{a.moi}` DA TON TAI o {tong(co_moi)} cho — doi se tron hai nghia vao mot")
+    truoc_moi = tong(co_moi)
+    if truoc_moi and not a.merge:
+        print(f"NAME_COLLISION: ten moi `{a.new}` DA TON TAI o {truoc_moi} cho — doi se tron hai nghia vao mot")
         for p, ds in sorted(co_moi.items())[:8]:
             print(f"   {rel(p, goc)}:{','.join(map(str, ds[:6]))}")
         return 3
@@ -169,22 +173,22 @@ def main():
     for p, ds in sorted(co_cu.items()):
         print(f"   {rel(p, goc)}:{','.join(map(str, ds[:8]))}" + (" …" if len(ds) > 8 else ""))
 
-    if not a.ghi:
-        print("\nTHU — chua doi gi. Them --ghi de doi that.")
+    if not a.write:
+        print("\nTHU — chua doi gi. Them --write de doi that.")
         return 0
 
     # ── đường lùi phải có TRƯỚC khi đụng
     if a.backup:
         if not os.path.isfile(os.path.join(a.backup, "manifest.json")):
-            print("TU_CHOI: --backup khong co manifest.json — chay sao_luu.py luu truoc")
+            print("REFUSED: --backup khong co manifest.json — chay backup.py save truoc")
             return 3
     else:
         sach = git_sach(goc)
         if sach is None:
-            print("TU_CHOI: thu muc khong phai git repo — can --backup do sao_luu.py luu tao")
+            print("REFUSED: thu muc khong phai git repo — can --backup do backup.py save tao")
             return 3
         if not sach:
-            print("TU_CHOI: cay git chua sach — commit hoac cat rieng thay doi dang do truoc, "
+            print("REFUSED: cay git chua sach — commit hoac cat rieng thay doi dang do truoc, "
                   "de git la duong lui duy nhat va sach")
             return 3
 
@@ -195,10 +199,10 @@ def main():
     #    ký tự đang có, để một file CRLF vẫn là CRLF sau khi đổi.
     for p, goc_byte in snapshot.items():
         s = goc_byte.decode("utf-8")
-        if a.chi_trong_nhay:
-            moi = rx_cu.sub(lambda m: m.group(1) + a.moi + m.group(1), s)
+        if a.quoted_only:
+            moi = rx_cu.sub(lambda m: m.group(1) + a.new + m.group(1), s)
         else:
-            moi = rx_cu.sub(a.moi, s)
+            moi = rx_cu.sub(a.new, s)
         tmp = p + ".tmp"
         with open(tmp, "wb") as f:
             f.write(moi.encode("utf-8"))
@@ -206,28 +210,30 @@ def main():
 
     # ── chốt SAU
     sau_cu, sau_moi = tong(dem(goc, rx_cu)), tong(dem(goc, rx_moi))
-    if sau_cu != 0 or sau_moi != n:
-        ok, ghi = phuc_hoi(snapshot)
-        print(f"CHOT_SAU_LECH: con {sau_cu} cho ten cu (mong 0), {sau_moi} cho ten moi (mong {n}) — "
+    if a.merge and truoc_moi:
+        print(f"  GOP co chu y: ten moi da co {truoc_moi} cho, mong sau khi doi la {n + truoc_moi}")
+    if sau_cu != 0 or sau_moi != n + (truoc_moi if a.merge else 0):
+        ok, ghi = restore(snapshot)
+        print(f"POSTCHECK_MISMATCH: con {sau_cu} cho ten cu (mong 0), {sau_moi} cho ten moi (mong {n}) — "
               f"{'DA PHUC HOI' if ok else 'PHUC HOI THAT BAI: ' + ghi}")
         return 5
     print(f"\n  da doi {n} cho · ten cu con: 0 · ten moi: {n}")
 
     # ── test; đỏ thì lùi
-    for lenh in a.kiem:
+    for lenh in a.check:
         r = subprocess.run(tach_lenh(lenh), cwd=goc, capture_output=True, text=True,
                            encoding="utf-8", errors="replace",
                            env={**os.environ, "PYTHONIOENCODING": "utf-8"})
         if r.returncode != 0:
-            ok, ghi = phuc_hoi(snapshot)
-            print(f"KIEM_DO: `{lenh}` exit {r.returncode} — "
+            ok, ghi = restore(snapshot)
+            print(f"CHECK_FAILED: `{lenh}` exit {r.returncode} — "
                   f"{'DA PHUC HOI ' + str(len(co_cu)) + ' file' if ok else 'PHUC HOI THAT BAI: ' + ghi}")
             print(((r.stdout or "") + (r.stderr or ""))[-600:])
             return 6
         print(f"  kiem xanh: {lenh}")
 
     print("\nXONG. Nho: ten phat ra ngoai la HOP DONG — them dong CHANGELOG va cap nhat "
-          "docs/BANG-THAM-CHIEU.md, roi chay tests/kiem_ten.py.")
+          "docs/REFERENCE.md, roi chay tests/check_names.py.")
     print("=" * 72)
     return 0
 

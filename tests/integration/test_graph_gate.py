@@ -10,7 +10,7 @@ mới chứng minh được cổng đang nhìn vào đúng chỗ.
 thường quá yếu. "Cổng báo có lỗi" là ca yếu. "Cổng báo có lỗi, và thôi báo đúng lúc ta
 gỡ nguyên nhân" là ca mạnh.
 
-    python tests/integration/test_cong_graph.py --ra .wp-it
+    python tests/integration/test_graph_gate.py --out .wp-it
 """
 import argparse
 import json
@@ -43,11 +43,11 @@ def chay(*lenh):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--ra", required=True)
+    ap.add_argument("--workdir", required=True, help="thu muc lam viec cua integration test")
     a = ap.parse_args()
-    W = os.path.abspath(a.ra)
+    W = os.path.abspath(a.workdir)
     if not os.path.isdir(os.path.join(W, "site")):
-        print("KHONG_KIEM_DUOC: chua dung WordPress — chay dung_wp.py truoc")
+        print("NOT_CHECKABLE: chua dung WordPress — chay dung_wp.py truoc")
         return 4
 
     theme_src = os.path.join(GOC, "fixture-bien-doi")
@@ -61,53 +61,53 @@ def main():
 
     # ── 1. đồ thị tĩnh tự khai đúng số cạnh nó không giải được
     print("\n[1] Đồ thị tĩnh có TỰ KHAI vùng mù của chính nó không")
-    ma, ra = chay(os.path.join(SCRIPTS, "code_nodes.py"), "--theme", theme_src, "--ra", graph)
+    ma, ra = chay(os.path.join(SCRIPTS, "code_nodes.py"), "--theme", theme_src, "--out", graph)
     kiem("code_nodes.py chạy xong, exit 0", ma == 0, ra[-400:])
     g = json.load(open(graph, encoding="utf-8"))
     kiem("tự khai đúng 2 cạnh không phân giải được",
-         g["so_chua_giai"] == 2,
-         f"tự khai {g['so_chua_giai']}, mong 2")
+         g["unresolved_count"] == 2,
+         f"tự khai {g['unresolved_count']}, mong 2")
     kiem("một cạnh là HOOK TÊN BIẾN",
-         len(g["chua_giai"]["hook_ten_bien"]) == 1,
-         str(g["chua_giai"]["hook_ten_bien"]))
+         len(g["unresolved"]["dynamic_hook"]) == 1,
+         str(g["unresolved"]["dynamic_hook"]))
     kiem("một cạnh là CALLBACK GHÉP CHUỖI",
-         len(g["chua_giai"]["callback_bien"]) == 1,
-         str(g["chua_giai"]["callback_bien"]))
+         len(g["unresolved"]["dynamic_callback"]) == 1,
+         str(g["unresolved"]["dynamic_callback"]))
     kiem("cạnh phụ thuộc asset được đọc (deps nằm sau một tham số có dấu ngoặc)",
-         any(e["loai"] == "phu_thuoc" for e in g["canh"]),
-         "khong co canh phu_thuoc — regex mot phat lai an mat mang deps")
+         any(e["kind"] == "depends_on" for e in g["edges"]),
+         "khong co canh depends_on — regex mot phat lai an mat mang deps")
 
     # ── 2. ADN runtime
     print("\n[2] Chụp ADN từ WordPress đang chạy")
-    ma, ra = chay(os.path.join(GOC, "chup_adn.py"), "--ra", W, "--ra-json", adn)
-    kiem("chup_adn.py chạy xong, exit 0", ma == 0, ra[-500:])
+    ma, ra = chay(os.path.join(GOC, "capture_dna.py"), "--workdir", W, "--out", adn)
+    kiem("capture_dna.py chạy xong, exit 0", ma == 0, ra[-500:])
     if ma != 0:
         return 1
 
     # ── 3. chiều chí mạng: cổng phải CHẶN
     print("\n[3] Chiều chí mạng — cổng phải CHẶN, không phải cảnh báo")
-    ma, ra = chay(os.path.join(SCRIPTS, "cong_graph.py"),
-                  "--graph", graph, "--adn", adn, "--ra", trust)
+    ma, ra = chay(os.path.join(SCRIPTS, "graph_gate.py"),
+                  "--graph", graph, "--dna", adn, "--out", trust)
     kiem("exit KHÁC 0 khi có vùng mù (fail-closed)", ma == 9, f"exit={ma}")
-    kiem("in ra GRAPH_KHONG_DANG_TIN", "GRAPH_KHONG_DANG_TIN" in ra)
+    kiem("in ra GRAPH_UNTRUSTED", "GRAPH_UNTRUSTED" in ra)
     t = json.load(open(trust, encoding="utf-8"))
-    kiem("đếm đúng 2 vùng mù", t["so_vung_mu"] == 2, f"dem {t['so_vung_mu']}")
-    mu_hook = [x for x in t["chi_runtime_co"]["hook"]]
+    kiem("đếm đúng 2 vùng mù", t["blind_spot_count"] == 2, f"dem {t['blind_spot_count']}")
+    mu_hook = [x for x in t["runtime_only"]["hook"]]
     kiem("gọi đúng TÊN hai callback mà tĩnh không thấy",
          sorted(x[2] for x in mu_hook) == ["fxb_dong_a", "fxb_dong_b"],
          str(mu_hook))
     kiem("KHÔNG có vùng mù ở mặt file và mặt asset",
-         not t["chi_runtime_co"]["file"] and not t["chi_runtime_co"]["asset"],
-         f"file={t['chi_runtime_co']['file']} asset={t['chi_runtime_co']['asset']}")
+         not t["runtime_only"]["file"] and not t["runtime_only"]["assets"],
+         f"file={t['runtime_only']['file']} asset={t['runtime_only']['assets']}")
 
     # ── 4. khai tường minh thì đi tiếp được
     print("\n[4] Khai tường minh số vùng mù thì mới đi tiếp được")
-    ma, ra = chay(os.path.join(SCRIPTS, "cong_graph.py"),
-                  "--graph", graph, "--adn", adn, "--chap-nhan-mu", "2")
+    ma, ra = chay(os.path.join(SCRIPTS, "graph_gate.py"),
+                  "--graph", graph, "--dna", adn, "--accept-blind", "2")
     kiem("exit 0 khi đã khai đúng số", ma == 0, f"exit={ma}")
     kiem("vẫn nói rõ những node đó là NOT_TESTED", "NOT_TESTED" in ra)
-    ma, _ = chay(os.path.join(SCRIPTS, "cong_graph.py"),
-                 "--graph", graph, "--adn", adn, "--chap-nhan-mu", "1")
+    ma, _ = chay(os.path.join(SCRIPTS, "graph_gate.py"),
+                 "--graph", graph, "--dna", adn, "--accept-blind", "1")
     kiem("khai THIẾU một vùng mù thì vẫn chặn", ma == 9, f"exit={ma}")
 
     # ── 5. CA ĐỐI CHỨNG NGƯỢC — phép kiểm mạnh nhất của file này
@@ -129,10 +129,10 @@ def main():
     open(fn, "w", encoding="utf-8", newline="").write(s.replace(moc, ""))
 
     graph2 = os.path.join(W, "graph-khong-dong.json")
-    ma, ra = chay(os.path.join(SCRIPTS, "code_nodes.py"), "--theme", tam, "--ra", graph2)
+    ma, ra = chay(os.path.join(SCRIPTS, "code_nodes.py"), "--theme", tam, "--out", graph2)
     g2 = json.load(open(graph2, encoding="utf-8"))
     kiem("bỏ file động thì đồ thị tĩnh tự khai 0 vùng mù",
-         g2["so_chua_giai"] == 0, f"tu khai {g2['so_chua_giai']}")
+         g2["unresolved_count"] == 0, f"tu khai {g2['unresolved_count']}")
 
     # Chụp ADN của chính cây đã gỡ file, rồi so — đây mới là đối chứng thật.
     adn2 = os.path.join(W, "adn-khong-dong.json")
@@ -144,16 +144,16 @@ def main():
     try:
         shutil.rmtree(site_theme)
         shutil.copytree(tam, site_theme)
-        ma, ra = chay(os.path.join(GOC, "chup_adn.py"), "--ra", W,
-                      "--ra-json", adn2, "--khong-chep")
+        ma, ra = chay(os.path.join(GOC, "capture_dna.py"), "--workdir", W,
+                      "--out", adn2, "--no-copy")
         if ma != 0:
             kiem("chup duoc ADN cua cay da go file dong", False, ra[-500:])
         else:
-            ma, ra = chay(os.path.join(SCRIPTS, "cong_graph.py"),
-                          "--graph", graph2, "--adn", adn2)
+            ma, ra = chay(os.path.join(SCRIPTS, "graph_gate.py"),
+                          "--graph", graph2, "--dna", adn2)
             kiem("cổng về 0 vùng mù và exit 0 sau khi gỡ nguyên nhân", ma == 0,
                  f"exit={ma}\n{ra[-700:]}")
-            kiem("in ra GRAPH_DANG_TIN", "GRAPH_DANG_TIN" in ra)
+            kiem("in ra GRAPH_TRUSTED", "GRAPH_TRUSTED" in ra)
     finally:
         shutil.rmtree(site_theme, ignore_errors=True)
         shutil.copytree(luu, site_theme)

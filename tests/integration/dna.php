@@ -25,12 +25,12 @@
  * một vùng mù không ai soát được — và mỗi vùng mask là một chỗ regression vô hình
  * BẰNG CẤU TRÚC, nên nó phải để lại dấu.
  *
- * Dùng:  php adn-nen.php [--theme-slug=fixture-theme] [--giai-doan=render]
+ * Dùng:  php dna.php [--theme-slug=fixture-theme] [--phase=render]
  */
 
-$tuy_chon = array( 'theme-slug' => '', 'giai-doan' => 'render' );
-foreach ( array_slice( $argv, 1 ) as $tham_so ) {
-	if ( preg_match( '/^--([a-z-]+)=(.*)$/', $tham_so, $m ) ) {
+$tuy_chon = array( 'theme-slug' => '', 'phase' => 'render' );
+foreach ( array_slice( $argv, 1 ) as $params ) {
+	if ( preg_match( '/^--([a-z-]+)=(.*)$/', $params, $m ) ) {
 		$tuy_chon[ $m[1] ] = $m[2];
 	}
 }
@@ -43,12 +43,12 @@ $_SERVER['SCRIPT_NAME']    = '/index.php';
 
 /* ───── bắt chuỗi hook fire. Phải đăng ký 'all' TRƯỚC khi render, nếu không thì
    chính phép đo bỏ mất giai đoạn mình cần đo nhất. */
-$GLOBALS['adn_chuoi_fire'] = array();
+$GLOBALS['dna_fire_sequence'] = array();
 $GLOBALS['adn_dang_ghi']   = false;
 
 function adn_ghi_nhan_fire() {
 	if ( ! empty( $GLOBALS['adn_dang_ghi'] ) ) {
-		$GLOBALS['adn_chuoi_fire'][] = current_filter();
+		$GLOBALS['dna_fire_sequence'][] = current_filter();
 	}
 }
 
@@ -70,9 +70,9 @@ if ( $tuy_chon['theme-slug'] !== '' ) {
 		// switch_theme không nạp lại functions.php của theme mới trong cùng request.
 		// Phải chạy lại tiến trình; báo ra để bên gọi biết mà chạy lượt hai.
 		echo wp_json_encode( array(
-			'loi'        => 'CAN_CHAY_LAI',
-			'theme_moi'  => $tuy_chon['theme-slug'],
-			'giai_thich' => 'switch_theme da doi theme nhung functions.php cua theme moi khong duoc nap trong cung request. Chay lai lenh nay.',
+			'error'        => 'RERUN_NEEDED',
+			'new_theme'  => $tuy_chon['theme-slug'],
+			'explain' => 'switch_theme da doi theme nhung functions.php cua theme moi khong duoc nap trong cung request. Chay lai lenh nay.',
 		) );
 		exit( 75 );
 	}
@@ -83,9 +83,9 @@ $theme_dir = rtrim( $theme, '/' ) . '/';
 
 if ( $tuy_chon['theme-slug'] !== '' && basename( rtrim( $theme_dir, '/' ) ) !== $tuy_chon['theme-slug'] ) {
 	echo wp_json_encode( array(
-		'loi'      => 'THEME_KHONG_KHOP',
-		'yeu_cau'  => $tuy_chon['theme-slug'],
-		'thuc_te'  => basename( rtrim( $theme_dir, '/' ) ),
+		'error'      => 'THEME_MISMATCH',
+		'requested'  => $tuy_chon['theme-slug'],
+		'actual'  => basename( rtrim( $theme_dir, '/' ) ),
 	) );
 	exit( 76 );
 }
@@ -122,7 +122,7 @@ function adn_mo_ta_callback( $cb, $theme_dir ) {
 			$ten = get_class( $cb ) . '->__invoke';
 			$r   = new ReflectionMethod( $cb, '__invoke' );
 		} else {
-			return array( 'ten' => $ten, 'file' => null, 'dong' => null );
+			return array( 'name' => $ten, 'file' => null, 'line' => null );
 		}
 		$f    = wp_normalize_path( (string) $r->getFileName() );
 		$dong = $r->getStartLine();
@@ -131,12 +131,12 @@ function adn_mo_ta_callback( $cb, $theme_dir ) {
 			: adn_rut_gon_ngoai( $f );
 	} catch ( Throwable $e ) {
 		// Không phản chiếu được thì nói là không phản chiếu được. Không đoán.
-		return array( 'ten' => $ten, 'file' => 'KHONG_PHAN_CHIEU_DUOC', 'dong' => null );
+		return array( 'name' => $ten, 'file' => 'NOT_REFLECTABLE', 'line' => null );
 	}
 	if ( $ten === 'Closure' && $file ) {
 		$ten = 'Closure@' . $file . ':' . $dong;
 	}
-	return array( 'ten' => $ten, 'file' => $file, 'dong' => $dong );
+	return array( 'name' => $ten, 'file' => $file, 'line' => $dong );
 }
 
 /** File ngoài theme: chỉ giữ phần sau wp-content để đường dẫn máy không lọt vào artefact. */
@@ -188,25 +188,25 @@ function adn_dang_ky_hook( $theme_dir, $chi_theme ) {
 		}
 		$priorities = array_keys( $doi_tuong->callbacks );
 		sort( $priorities, SORT_NUMERIC );
-		foreach ( $priorities as $uu_tien ) {
-			$thu_tu = 0;
-			foreach ( $doi_tuong->callbacks[ $uu_tien ] as $muc ) {
+		foreach ( $priorities as $priority ) {
+			$order = 0;
+			foreach ( $doi_tuong->callbacks[ $priority ] as $muc ) {
 				$mo_ta = adn_mo_ta_callback( $muc['function'], $theme_dir );
-				$thu_tu++;
+				$order++;
 				$la_theme = $mo_ta['file'] !== null
 					&& strpos( (string) $mo_ta['file'], '…' ) !== 0
-					&& $mo_ta['file'] !== 'KHONG_PHAN_CHIEU_DUOC';
+					&& $mo_ta['file'] !== 'NOT_REFLECTABLE';
 				if ( $chi_theme && ! $la_theme ) {
 					continue;
 				}
 				$ra[] = array(
 					'hook'     => $hook,
-					'uu_tien'  => (int) $uu_tien,
-					'thu_tu'   => $thu_tu,
-					'callback' => $mo_ta['ten'],
+					'priority'  => (int) $priority,
+					'order'   => $order,
+					'callback' => $mo_ta['name'],
 					'file'     => $mo_ta['file'],
-					'dong'     => $mo_ta['dong'],
-					'so_tham_so' => isset( $muc['accepted_args'] ) ? (int) $muc['accepted_args'] : null,
+					'line'     => $mo_ta['line'],
+					'accepted_args' => isset( $muc['accepted_args'] ) ? (int) $muc['accepted_args'] : null,
 				);
 			}
 		}
@@ -257,7 +257,7 @@ function adn_registry( $doi_tuong, $theme_dir ) {
  * Đây là mặt bắt được ca "tách hàm ra với giá trị mặc định khác" — ca mà `php -l`
  * sạch, markup y nguyên, và cả bốn tầng cũ đều không hỏi tới.
  */
-function adn_chu_ky_ham( $theme_dir ) {
+function dna_signatures( $theme_dir ) {
 	$ra = array();
 	$ham = get_defined_functions();
 	foreach ( $ham['user'] as $ten ) {
@@ -267,35 +267,35 @@ function adn_chu_ky_ham( $theme_dir ) {
 			if ( ! $f || strpos( $f, $theme_dir ) !== 0 ) {
 				continue;
 			}
-			$tham_so = array();
+			$params = array();
 			foreach ( $r->getParameters() as $p ) {
-				$mac_dinh = 'KHONG_CO';
+				$default = 'NO_DEFAULT';
 				if ( $p->isDefaultValueAvailable() ) {
 					try {
-						$mac_dinh = var_export( $p->getDefaultValue(), true );
+						$default = var_export( $p->getDefaultValue(), true );
 					} catch ( Throwable $e ) {
-						$mac_dinh = 'KHONG_DOC_DUOC';
+						$default = 'UNREADABLE';
 					}
 				}
-				$tham_so[] = array(
-					'ten'       => $p->getName(),
-					'mac_dinh'  => $mac_dinh,
-					'bat_buoc'  => ! $p->isOptional(),
-					'kieu'      => $p->hasType() ? (string) $p->getType() : null,
+				$params[] = array(
+					'name'       => $p->getName(),
+					'default'  => $default,
+					'required'  => ! $p->isOptional(),
+					'asset_type'      => $p->hasType() ? (string) $p->getType() : null,
 				);
 			}
 			$ra[] = array(
-				'ten'     => $ten,
+				'name'     => $ten,
 				'file'    => substr( $f, strlen( $theme_dir ) ),
-				'dong'    => $r->getStartLine(),
-				'tham_so' => $tham_so,
+				'line'    => $r->getStartLine(),
+				'params' => $params,
 			);
 		} catch ( Throwable $e ) {
 			continue;
 		}
 	}
 	usort( $ra, function ( $a, $b ) {
-		return strcmp( $a['ten'], $b['ten'] );
+		return strcmp( $a['name'], $b['name'] );
 	} );
 	return $ra;
 }
@@ -335,37 +335,37 @@ remove_action( 'all', 'adn_ghi_nhan_fire', 0 );
    hai lượt, và tệ hơn là hai lượt có thể ra khác nhau nếu có gì đăng ký ở giữa. */
 $nap_sau_render = adn_file_theme_da_nap( $theme_dir );
 $hook_tat_ca    = adn_dang_ky_hook( $theme_dir, false );
-$hook_theme     = array_values( array_filter( $hook_tat_ca, function ( $h ) {
+$theme_hooks     = array_values( array_filter( $hook_tat_ca, function ( $h ) {
 	return $h['file'] !== null
 		&& strpos( (string) $h['file'], '…' ) !== 0
-		&& $h['file'] !== 'KHONG_PHAN_CHIEU_DUOC';
+		&& $h['file'] !== 'NOT_REFLECTABLE';
 } ) );
 
 echo wp_json_encode(
 	array(
-		'phien_ban' => 1,
-		'moi_truong' => array(
+		'version' => 1,
+		'env' => array(
 			'php'         => PHP_VERSION,
 			'wp'          => get_bloginfo( 'version' ),
 			'woo'         => class_exists( 'WooCommerce' ) ? 'co' : 'khong',
 			'theme_slug'  => basename( $theme_dir ),
 		),
 		/* 1 — THỨ TỰ NẠP, không phải tập */
-		'file_nap_truoc_render' => $nap_truoc_render,
-		'file_nap_sau_render'   => $nap_sau_render,
+		'files_before_render' => $nap_truoc_render,
+		'files_after_render'   => $nap_sau_render,
 		/* 2 — priority + thứ tự trong bucket */
-		'hook_theme'            => $hook_theme,
-		'so_hook'          => count( $hook_tat_ca ),
+		'theme_hooks'            => $theme_hooks,
+		'hook_count'          => count( $hook_tat_ca ),
 		/* 3 — THỨ TỰ FIRE THẬT */
-		'chuoi_fire'            => $GLOBALS['adn_chuoi_fire'],
+		'fire_sequence'            => $GLOBALS['dna_fire_sequence'],
 		/* 4 — registry, giữ thứ tự */
 		'scripts'               => adn_registry( $GLOBALS['wp_scripts'] ?? null, $theme_dir ),
 		'styles'                => adn_registry( $GLOBALS['wp_styles'] ?? null, $theme_dir ),
 		/* 5 — chữ ký hàm kèm giá trị mặc định */
-		'chu_ky_ham'            => adn_chu_ky_ham( $theme_dir ),
+		'signatures'            => dna_signatures( $theme_dir ),
 		/* HTML thô — mask làm ở phía Python, có lý do, trong version control */
-		'html_tho'              => $html,
-		'do_dai_html'           => strlen( $html ),
+		'html_raw'              => $html,
+		'html_length'           => strlen( $html ),
 	),
 	JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
 );

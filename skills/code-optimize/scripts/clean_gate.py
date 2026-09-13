@@ -10,7 +10,7 @@ một là chặn:
      của chính cleaner ("Lặp tới khi rỗng"), không phải tiêu chí mới — cổng chỉ biến câu
      đó thành một phép kiểm máy chạy được.
 
-  2. **Có đường lùi** — một backup toàn cây do `sao_luu.py luu` tạo, và cây hiện tại phải
+  2. **Có đường lùi** — một backup toàn cây do `backup.py save` tạo, và cây hiện tại phải
      KHỚP manifest của backup đó. Khớp nghĩa là: nếu phép tối ưu sắp tới làm hỏng gì, bản
      trong backup chính là bản đang chạy bây giờ, không phải một bản nào khác.
 
@@ -27,9 +27,9 @@ code viết ra để chống nó), và vì lane tối ưu có bán kính lớn h
 code, không chỉ xoá. Tối ưu trên một cây chưa sạch là tối ưu cả phần xác — rồi phải dọn
 lại sau khi đã viết lại, tức dọn hai lần và mỗi lần đều rủi ro.
 
-    python cong_clean.py --theme <cây> --backup <thư-mục-backup> [--tien-to fx_] [--ra gate.json]
+    python clean_gate.py --theme <cây> --backup <thư-mục-backup> [--prefix fx_] [--out gate.json]
 
-Exit: 0 mở · 7 CHUA_CLEAN · 8 KHONG_CO_DUONG_LUI · 4 KHONG_KIEM_DUOC
+Exit: 0 mở · 7 NOT_CLEAN · 8 NO_ROLLBACK · 4 NOT_CHECKABLE
 """
 import argparse
 import io
@@ -46,7 +46,7 @@ if hasattr(sys.stdout, "reconfigure"):
 GOC = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(GOC)))
 QUET_CHET = os.path.join(REPO, "skills", "wp-code-cleaner", "scripts", "quet_chet.py")
-SAO_LUU = os.path.join(GOC, "sao_luu.py")
+SAO_LUU = os.path.join(GOC, "backup.py")
 
 
 def chay(*lenh):
@@ -60,21 +60,21 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--theme", required=True)
     ap.add_argument("--backup", required=True,
-                    help="thu muc backup do sao_luu.py luu tao; cay phai KHOP manifest")
+                    help="thu muc backup do backup.py save tao; cay phai MATCH manifest")
     ap.add_argument("--loader", default="functions.php")
-    ap.add_argument("--tien-to", default="", help="tien to ham, ngan bang dau phay (nhu quet_chet.py)")
-    ap.add_argument("--ra", default="", help="ghi clean-gate.json")
+    ap.add_argument("--prefix", default="", help="tien to ham, ngan bang dau phay (nhu quet_chet.py)")
+    ap.add_argument("--out", default="", help="ghi clean-gate.json")
     a = ap.parse_args()
 
     theme = os.path.abspath(a.theme)
     if not os.path.isdir(theme):
-        print("KHONG_KIEM_DUOC: khong thay cay " + theme)
+        print("NOT_CHECKABLE: khong thay cay " + theme)
         return 4
     if not os.path.isfile(QUET_CHET):
-        print("KHONG_KIEM_DUOC: khong thay quet_chet.py o " + QUET_CHET)
+        print("NOT_CHECKABLE: khong thay quet_chet.py o " + QUET_CHET)
         return 4
 
-    ket_qua = {"phien_ban": 1, "theme": theme.replace("\\", "/"), "dieu_kien": {}}
+    ket_qua = {"version": 1, "theme": theme.replace("\\", "/"), "conditions": {}}
     chan = []
 
     # ── Điều kiện 1: quét lại phải ra RỖNG
@@ -86,11 +86,11 @@ def main():
     os.close(fd)
     try:
         lenh = [QUET_CHET, "--theme", theme, "--loader", a.loader, "--json", tmp]
-        if a.tien_to:
-            lenh += ["--tien-to", a.tien_to]
+        if a.prefix:
+            lenh += ["--prefix", a.prefix]
         _ma, ra = chay(*lenh)
         if not os.path.isfile(tmp) or os.path.getsize(tmp) == 0:
-            print("KHONG_KIEM_DUOC: quet_chet.py khong ghi duoc JSON\n" + ra[-600:])
+            print("NOT_CHECKABLE: quet_chet.py khong ghi duoc JSON\n" + ra[-600:])
             return 4
         q = json.load(io.open(tmp, encoding="utf-8"))
     finally:
@@ -100,61 +100,61 @@ def main():
             pass
 
     kiem_tra = [
-        ("co_loader", q.get("co_loader") is True, "loader khong tim thay — muc 1 va 2 cua quet gan chac chan sai"),
-        ("require_khong_phan_giai", q.get("require_khong_phan_giai", 1) == 0,
-         f"{q.get('require_khong_phan_giai')} cau require khong phan giai duoc — moi cau la mot canh do thi thieu"),
-        ("file_chet", not q.get("file_chet"), "file khong co duong nao dan toi: " + ", ".join(q.get("file_chet", [])[:6])),
-        ("hook_khong_nap", not q.get("hook_khong_nap"), "file dang ky hook ma khong duoc nap: " + ", ".join(q.get("hook_khong_nap", [])[:6])),
-        ("ham_chet", not q.get("ham_chet"), "ham khong ai goi: " + ", ".join(h[0] for h in q.get("ham_chet", [])[:6])),
+        ("has_loader", q.get("has_loader") is True, "loader khong tim thay — muc 1 va 2 cua quet gan chac chan sai"),
+        ("unresolved_requires", q.get("unresolved_requires", 1) == 0,
+         f"{q.get('unresolved_requires')} cau require khong phan giai duoc — moi cau la mot canh do thi thieu"),
+        ("dead_files", not q.get("dead_files"), "file khong co duong nao dan toi: " + ", ".join(q.get("dead_files", [])[:6])),
+        ("unloaded_hooks", not q.get("unloaded_hooks"), "file dang ky hook ma khong duoc nap: " + ", ".join(q.get("unloaded_hooks", [])[:6])),
+        ("dead_functions", not q.get("dead_functions"), "ham khong ai goi: " + ", ".join(h[0] for h in q.get("dead_functions", [])[:6])),
     ]
     for ten, ok, ly_do in kiem_tra:
-        ket_qua["dieu_kien"][ten] = ok
+        ket_qua["conditions"][ten] = ok
         print(f"  {'dat ' if ok else 'CHAN'}  {ten}" + ("" if ok else f"\n        {ly_do}"))
         if not ok:
-            chan.append("CHUA_CLEAN:" + ten)
+            chan.append("NOT_CLEAN:" + ten)
 
     # ── Điều kiện 2: có backup, và cây KHỚP backup
     print("\n[2] Đường lùi — backup toàn cây phải tồn tại và KHỚP cây hiện tại")
     bk = os.path.abspath(a.backup)
     if not os.path.isfile(os.path.join(bk, "manifest.json")):
-        ket_qua["dieu_kien"]["backup_ton_tai"] = False
-        print(f"  CHAN  khong thay manifest.json trong {bk}\n        chay: sao_luu.py luu --nguon <cay> --ra <backup>")
-        chan.append("KHONG_CO_DUONG_LUI:backup_ton_tai")
+        ket_qua["conditions"]["backup_exists"] = False
+        print(f"  CHAN  khong thay manifest.json trong {bk}\n        chay: backup.py save --source <cay> --out <backup>")
+        chan.append("NO_ROLLBACK:backup_exists")
     else:
-        ket_qua["dieu_kien"]["backup_ton_tai"] = True
-        print("  dat   backup_ton_tai")
-        ma, ra = chay(SAO_LUU, "kiem", "--tu", bk, "--so-voi", theme)
+        ket_qua["conditions"]["backup_exists"] = True
+        print("  dat   backup_exists")
+        ma, ra = chay(SAO_LUU, "check", "--from", bk, "--against", theme)
         khop = ma == 0
-        ket_qua["dieu_kien"]["cay_khop_backup"] = khop
-        print(f"  {'dat ' if khop else 'CHAN'}  cay_khop_backup"
+        ket_qua["conditions"]["tree_matches_backup"] = khop
+        print(f"  {'dat ' if khop else 'CHAN'}  tree_matches_backup"
               + ("" if khop else "\n        cay hien tai KHAC backup — neu toi uu hong thi ban trong backup "
                                  "khong phai ban dang chay. Luu lai truoc.\n        "
                                  + ra.strip().replace("\n", "\n        ")[-500:]))
         if not khop:
-            chan.append("KHONG_CO_DUONG_LUI:cay_khop_backup")
+            chan.append("NO_ROLLBACK:tree_matches_backup")
 
-    ket_qua["chan"] = chan
-    ket_qua["mo"] = not chan
-    if a.ra:
-        os.makedirs(os.path.dirname(os.path.abspath(a.ra)), exist_ok=True)
-        t = a.ra + ".tmp"
+    ket_qua["blockers"] = chan
+    ket_qua["open"] = not chan
+    if a.out:
+        os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
+        t = a.out + ".tmp"
         with io.open(t, "w", encoding="utf-8") as f:
             json.dump(ket_qua, f, ensure_ascii=False, indent=2)
-        os.replace(t, a.ra)
-        print("\nđã ghi " + a.ra)
+        os.replace(t, a.out)
+        print("\nđã ghi " + a.out)
 
     print("\n" + "=" * 72)
     if not chan:
-        print("CONG_MO — cây đã dọn xong theo định nghĩa của cleaner, và có đường lùi đã khớp.")
-        print("Đọc cho đúng: 'dọn xong' ở đây là kết luận TĨNH. Cổng graph (cong_graph.py) sẽ")
+        print("GATE_OPEN — cây đã dọn xong theo định nghĩa của cleaner, và có đường lùi đã khớp.")
+        print("Đọc cho đúng: 'dọn xong' ở đây là kết luận TĨNH. Cổng graph (graph_gate.py) sẽ")
         print("đối chứng nó với runtime ngay bước sau — đừng coi cổng này là bằng chứng cuối.")
         print("=" * 72)
         return 0
-    if any(c.startswith("CHUA_CLEAN") for c in chan):
-        print("CHUA_CLEAN — chạy wp-code-cleaner cho tới khi quet_chet.py ra rỗng, rồi quay lại.")
+    if any(c.startswith("NOT_CLEAN") for c in chan):
+        print("NOT_CLEAN — chạy wp-code-cleaner cho tới khi quet_chet.py ra rỗng, rồi quay lại.")
         print("=" * 72)
         return 7
-    print("KHONG_CO_DUONG_LUI — tạo hoặc làm mới backup bằng sao_luu.py rồi quay lại.")
+    print("NO_ROLLBACK — tạo hoặc làm mới backup bằng backup.py rồi quay lại.")
     print("=" * 72)
     return 8
 

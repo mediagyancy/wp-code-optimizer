@@ -11,20 +11,20 @@ lại trải trên nhiều file bằng các `.bak` rời là lắp lại một c
 sách rỗng trong template.
 
 Một đường lùi chưa từng chạy là một đoạn văn, không phải một đường lùi. File này biến
-đoạn văn thành ba lệnh, và `tests/test_sao_luu.py` bắt nó chạy thật trước khi ai được tin.
+đoạn văn thành ba lệnh, và `tests/test_backup.py` bắt nó chạy thật trước khi ai được tin.
 
 Ba lệnh
 -------
-    sao_luu.py luu      --nguon <cây>  --ra <thư-mục-backup>
-    sao_luu.py kiem     --tu <backup>  --so-voi <cây>        [--bo-cr]
-    sao_luu.py phuc_hoi --tu <backup>  --den <cây-đích>      [--ghi]
+    backup.py save      --source <cây>  --out <thư-mục-backup>
+    backup.py check     --from <backup>  --against <cây>        [--ignore-cr]
+    backup.py restore --from <backup>  --to <cây-đích>      [--write]
 
 `luu`      chép toàn cây + ghi `manifest.json`: SHA-256 từng file, số file, tổng byte.
 `kiem`     so một cây đang sống với manifest — báo file THÊM / THIẾU / KHÁC. Đây là
-           phép phát hiện drift, và cũng là phép hiệu chuẩn cho `phuc_hoi`.
-`phuc_hoi` dựng lại cây đích CHỈ từ thư mục backup, rồi tự `kiem` lại cây vừa dựng.
-           Mặc định là thử (`--thu`); muốn ghi thật phải bật `--ghi`. Từ chối ghi vào
-           cây đích không rỗng nếu không có `--de-len`.
+           phép phát hiện drift, và cũng là phép hiệu chuẩn cho `restore`.
+`restore` dựng lại cây đích CHỈ từ thư mục backup, rồi tự `kiem` lại cây vừa dựng.
+           Mặc định là thử (`--thu`); muốn ghi thật phải bật `--write`. Từ chối ghi vào
+           cây đích không rỗng nếu không có `--overwrite`.
 
 Hai điều phải biết trước khi tin
 --------------------------------
@@ -35,10 +35,10 @@ Hai điều phải biết trước khi tin
    nào ngoài đĩa". Backup dựng từ git là backup thiếu, và thiếu thì chỉ lộ ra lúc cần
    phục hồi. Tải cây từ host qua FTP trước, rồi mới `luu`.
 
-2. **So byte là so byte.** Phục hồi thì phải ra đúng từng byte, nên `phuc_hoi` so SHA-256
-   nguyên văn. Cờ `--bo-cr` CHỈ dành cho `kiem` khi so local với bản tải từ host — CRLF
+2. **So byte là so byte.** Phục hồi thì phải ra đúng từng byte, nên `restore` so SHA-256
+   nguyên văn. Cờ `--ignore-cr` CHỈ dành cho `kiem` khi so local với bản tải từ host — CRLF
    và LF làm hai file giống nhau lệch đúng số dòng (`checkout.css` từng lệch đúng 1.049
-   byte = 1.049 dòng). Không bao giờ dùng `--bo-cr` để làm một phép phục hồi "đạt".
+   byte = 1.049 dòng). Không bao giờ dùng `--ignore-cr` để làm một phép phục hồi "đạt".
 """
 import argparse
 import hashlib
@@ -53,10 +53,10 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
-PHIEN_BAN_MANIFEST = 1
-TEN_MANIFEST = "manifest.json"
-TEN_CAY = "cay"
-BO_QUA_MAC_DINH = (".git",)
+MANIFEST_VERSION = 1
+MANIFEST_NAME = "manifest.json"
+TREE_DIR = "cay"
+DEFAULT_EXCLUDES = (".git",)
 
 
 def sha256(p, bo_cr=False):
@@ -69,32 +69,32 @@ def sha256(p, bo_cr=False):
     return h.hexdigest()
 
 
-def liet_ke(goc, bo_qua):
+def liet_ke(goc, excluded):
     """Mọi file dưới `goc`, đường dẫn tương đối dùng `/`, sort để manifest ổn định."""
     ra = []
     for dp, dn, fn in os.walk(goc):
-        dn[:] = sorted(d for d in dn if d not in bo_qua)
+        dn[:] = sorted(d for d in dn if d not in excluded)
         for f in sorted(fn):
             p = os.path.join(dp, f)
             ra.append(os.path.relpath(p, goc).replace(os.sep, "/"))
     return ra
 
 
-def luu(nguon, ra, bo_qua):
+def luu(nguon, ra, excluded):
     nguon = os.path.abspath(nguon)
     ra = os.path.abspath(ra)
     if not os.path.isdir(nguon):
-        print("KHONG_KIEM_DUOC: khong thay cay nguon " + nguon)
+        print("NOT_CHECKABLE: khong thay cay nguon " + nguon)
         return 4
     if os.path.exists(ra) and os.listdir(ra):
-        print("TU_CHOI: thu muc backup da co noi dung, khong ghi de len — " + ra)
+        print("REFUSED: thu muc backup da co noi dung, khong ghi de len — " + ra)
         return 3
 
-    cay = os.path.join(ra, TEN_CAY)
+    cay = os.path.join(ra, TREE_DIR)
     os.makedirs(cay, exist_ok=True)
-    tep = liet_ke(nguon, bo_qua)
+    tep = liet_ke(nguon, excluded)
     if not tep:
-        print("KHONG_KIEM_DUOC: cay nguon rong — khong co gi de sao luu")
+        print("NOT_CHECKABLE: cay nguon rong — khong co gi de sao luu")
         return 4
 
     bang = {}
@@ -111,47 +111,47 @@ def luu(nguon, ra, bo_qua):
     # hỏng và manifest đang mô tả một cái cây không tồn tại trong backup.
     lech = [r for r in tep if sha256(os.path.join(cay, r)) != bang[r]["sha256"]]
     if lech:
-        print("HONG: ban chep khac ban goc o " + str(len(lech)) + " file — backup KHONG dung duoc")
+        print("BROKEN: ban chep khac ban goc o " + str(len(lech)) + " file — backup KHONG dung duoc")
         for r in lech[:8]:
             print("   " + r)
         return 5
 
     manifest = {
-        "phien_ban": PHIEN_BAN_MANIFEST,
-        "thoi_diem": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-        "nguon": nguon.replace("\\", "/"),
-        "bo_qua": list(bo_qua),
-        "so_file": len(tep),
-        "tong_byte": tong,
+        "version": MANIFEST_VERSION,
+        "created_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "source": nguon.replace("\\", "/"),
+        "excluded": list(excluded),
+        "file_count": len(tep),
+        "total_bytes": tong,
         "file": bang,
     }
-    tmp = os.path.join(ra, TEN_MANIFEST + ".tmp")
+    tmp = os.path.join(ra, MANIFEST_NAME + ".tmp")
     with io.open(tmp, "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, os.path.join(ra, TEN_MANIFEST))
-    print(f"DA_LUU  {len(tep)} file · {tong:,} byte · {ra}")
+    os.replace(tmp, os.path.join(ra, MANIFEST_NAME))
+    print(f"SAVED  {len(tep)} file · {tong:,} byte · {ra}")
     return 0
 
 
 def doc_manifest(tu):
-    p = os.path.join(os.path.abspath(tu), TEN_MANIFEST)
+    p = os.path.join(os.path.abspath(tu), MANIFEST_NAME)
     if not os.path.isfile(p):
-        return None, "KHONG_KIEM_DUOC: khong thay " + p
+        return None, "NOT_CHECKABLE: khong thay " + p
     with io.open(p, encoding="utf-8") as f:
         m = json.load(f)
-    if m.get("phien_ban") != PHIEN_BAN_MANIFEST or not m.get("file"):
-        return None, "KHONG_KIEM_DUOC: manifest sai phien ban hoac rong"
+    if m.get("version") != MANIFEST_VERSION or not m.get("file"):
+        return None, "NOT_CHECKABLE: manifest sai phien ban hoac rong"
     return m, None
 
 
-def so(m, cay, bo_qua, bo_cr=False, cay_backup=None):
+def so(m, cay, excluded, bo_cr=False, cay_backup=None):
     """So một cây với manifest. Trả dict {them, thieu, khac}.
 
     `cay_backup` chỉ cần khi `bo_cr`: manifest lưu hash NGUYÊN VĂN, nên muốn so sau khi
     bỏ `\\r` thì phải hash lại bản trong backup theo cùng cách — không thì đang so hai
     phép đo khác nhau và kết quả vô nghĩa.
     """
-    co = set(liet_ke(cay, bo_qua)) if os.path.isdir(cay) else set()
+    co = set(liet_ke(cay, excluded)) if os.path.isdir(cay) else set()
     mong = set(m["file"])
     them = sorted(co - mong)
     thieu = sorted(mong - co)
@@ -164,11 +164,11 @@ def so(m, cay, bo_qua, bo_cr=False, cay_backup=None):
                 h_mong = sha256(goc, bo_cr=True)
         if sha256(os.path.join(cay, r), bo_cr=bo_cr) != h_mong:
             khac.append(r)
-    return {"them": them, "thieu": thieu, "khac": khac}
+    return {"added": them, "missing": thieu, "changed": khac}
 
 
 def in_so(kq, gioi_han=10):
-    for ten, nhan in (("thieu", "THIEU"), ("khac", "KHAC "), ("them", "THEM ")):
+    for ten, nhan in (("missing", "THIEU"), ("changed", "KHAC "), ("added", "THEM ")):
         bo = kq[ten]
         if not bo:
             continue
@@ -184,44 +184,44 @@ def kiem(tu, so_voi, bo_cr):
     if loi:
         print(loi)
         return 4
-    kq = so(m, os.path.abspath(so_voi), tuple(m.get("bo_qua", BO_QUA_MAC_DINH)), bo_cr,
-            cay_backup=os.path.join(os.path.abspath(tu), TEN_CAY))
+    kq = so(m, os.path.abspath(so_voi), tuple(m.get("excluded", DEFAULT_EXCLUDES)), bo_cr,
+            cay_backup=os.path.join(os.path.abspath(tu), TREE_DIR))
     tong = sum(len(v) for v in kq.values())
-    print(f"KIEM  {so_voi}  so voi backup {m['so_file']} file"
+    print(f"KIEM  {so_voi}  so voi backup {m['file_count']} file"
           + ("  (da bo \\r truoc khi so)" if bo_cr else ""))
     if tong == 0:
-        print("  KHOP  0 file lech")
+        print("  MATCH  0 file lech")
         return 0
     in_so(kq)
     print(f"  -> {tong} file lech")
     return 1
 
 
-def phuc_hoi(tu, den, ghi, de_len):
+def restore(tu, den, ghi, de_len):
     m, loi = doc_manifest(tu)
     if loi:
         print(loi)
         return 4
     tu = os.path.abspath(tu)
     den = os.path.abspath(den)
-    cay = os.path.join(tu, TEN_CAY)
+    cay = os.path.join(tu, TREE_DIR)
 
     # Chốt 1: backup phải TỰ NHẤT QUÁN trước khi dùng nó để phục hồi bất cứ gì.
     # Một backup hỏng mà đem phục hồi thì hỏng lan sang cây đích, và lúc đó không còn
     # bản nào tốt.
-    kq_tu = so(m, cay, tuple(m.get("bo_qua", BO_QUA_MAC_DINH)))
+    kq_tu = so(m, cay, tuple(m.get("excluded", DEFAULT_EXCLUDES)))
     if any(kq_tu.values()):
-        print("HONG: backup KHONG tu nhat quan voi manifest cua chinh no — khong phuc hoi")
+        print("BROKEN: backup KHONG tu nhat quan voi manifest cua chinh no — khong phuc hoi")
         in_so(kq_tu)
         return 5
 
     if os.path.isdir(den) and os.listdir(den) and not de_len:
-        print("TU_CHOI: cay dich khong rong — them --de-len neu chac chan muon ghi de")
+        print("REFUSED: cay dich khong rong — them --overwrite neu chac chan muon ghi de")
         return 3
 
     if not ghi:
-        print(f"THU  se phuc hoi {m['so_file']} file · {m['tong_byte']:,} byte -> {den}")
-        print("     (chua ghi gi; them --ghi de phuc hoi that)")
+        print(f"THU  se phuc hoi {m['file_count']} file · {m['total_bytes']:,} byte -> {den}")
+        print("     (chua ghi gi; them --write de phuc hoi that)")
         return 0
 
     if os.path.isdir(den) and de_len:
@@ -235,13 +235,13 @@ def phuc_hoi(tu, den, ghi, de_len):
 
     # Chốt 2: cây vừa dựng phải khớp manifest TỚI TỪNG BYTE. "Đã copy xong" không phải
     # "đã phục hồi xong" — phục hồi xong là khi phép so nói 0 lệch.
-    kq = so(m, den, tuple(m.get("bo_qua", BO_QUA_MAC_DINH)))
+    kq = so(m, den, tuple(m.get("excluded", DEFAULT_EXCLUDES)))
     tong = sum(len(v) for v in kq.values())
-    print(f"PHUC_HOI  {m['so_file']} file -> {den}")
+    print(f"RESTORED  {m['file_count']} file -> {den}")
     if tong == 0:
-        print("  KHOP  0 file lech — phuc hoi DA XAC MINH")
+        print("  MATCH  0 file lech — phuc hoi DA XAC MINH")
         return 0
-    print("  HONG  cay phuc hoi KHONG khop manifest")
+    print("  BROKEN  cay phuc hoi KHONG khop manifest")
     in_so(kq)
     return 5
 
@@ -250,31 +250,31 @@ def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="lenh", required=True)
 
-    a = sub.add_parser("luu")
-    a.add_argument("--nguon", required=True)
-    a.add_argument("--ra", required=True)
-    a.add_argument("--bo-qua", default=",".join(BO_QUA_MAC_DINH),
+    a = sub.add_parser("save")
+    a.add_argument("--source", required=True)
+    a.add_argument("--out", required=True)
+    a.add_argument("--exclude", default=",".join(DEFAULT_EXCLUDES),
                    help="thu muc bo qua, ngan bang dau phay (mac dinh: .git)")
 
-    b = sub.add_parser("kiem")
-    b.add_argument("--tu", required=True)
-    b.add_argument("--so-voi", required=True)
-    b.add_argument("--bo-cr", action="store_true",
+    b = sub.add_parser("check")
+    b.add_argument("--from", dest="from_dir", required=True)
+    b.add_argument("--against", required=True)
+    b.add_argument("--ignore-cr", action="store_true",
                    help="bo \\r truoc khi so — CHI khi so local voi ban tai tu host")
 
-    c = sub.add_parser("phuc_hoi")
-    c.add_argument("--tu", required=True)
-    c.add_argument("--den", required=True)
-    c.add_argument("--ghi", action="store_true", help="phuc hoi that (mac dinh chi thu)")
-    c.add_argument("--de-len", action="store_true", help="cho phep ghi de cay dich khong rong")
+    c = sub.add_parser("restore")
+    c.add_argument("--from", dest="from_dir", required=True)
+    c.add_argument("--to", dest="to_dir", required=True)
+    c.add_argument("--write", action="store_true", help="phuc hoi that (mac dinh chi thu)")
+    c.add_argument("--overwrite", action="store_true", help="cho phep ghi de cay dich khong rong")
 
     x = ap.parse_args()
-    if x.lenh == "luu":
-        bo_qua = tuple(t.strip() for t in x.bo_qua.split(",") if t.strip())
-        return luu(x.nguon, x.ra, bo_qua)
-    if x.lenh == "kiem":
-        return kiem(x.tu, x.so_voi, x.bo_cr)
-    return phuc_hoi(x.tu, x.den, x.ghi, x.de_len)
+    if x.lenh == "save":
+        excluded = tuple(t.strip() for t in x.exclude.split(",") if t.strip())
+        return luu(x.source, x.out, excluded)
+    if x.lenh == "check":
+        return kiem(x.from_dir, x.against, x.ignore_cr)
+    return restore(x.from_dir, x.to_dir, x.write, x.overwrite)
 
 
 if __name__ == "__main__":

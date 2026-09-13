@@ -571,7 +571,7 @@ Lớn hơn 0 mới là lỗi. **"Nhìn ổn" không phải bằng chứng, và �
 >
 > **Cấm dùng `window.innerWidth` để tính** trong mọi script đo layout; vẫn được báo cáo
 > giá trị của nó để đối chiếu. Ràng buộc này nay có khẳng định trong bộ test (và trong file CI, chưa chạy trên runner) —
-> `skills/wp-preview-builder/scripts/quyet_dinh_tran.py` giữ cả hai công thức và bắt buộc
+> `skills/wp-preview-builder/scripts/overflow_rule.py` giữ cả hai công thức và bắt buộc
 > phải tồn tại một ca mà chúng cho kết quả khác nhau. Quay về `innerWidth` sẽ làm đỏ một
 > test có tên.
 
@@ -644,12 +644,12 @@ không có dữ liệu thật, không có plugin. Chỉ đo trên trang chạy t
 1. mở trang bằng Browser pane
 2. resize_window về từng bề rộng: 344 → 375 → 768 → 1280 → 1440
 3. dán scripts/probe.js vào javascript_tool
-4. đọc TRAN_NGANG trước, rồi mới xét thu_pham_that
+4. đọc OVERFLOW trước, rồi mới xét offenders
 5. xong thì resize_window preset "desktop" để trả lại
 ```
 
-Đọc kết quả: `TRAN_NGANG: "không"` mà `thu_pham_that` rỗng thì trang sạch ở bề rộng đó.
-`da_loc_bo_vi_vo_hai` cho biết bao nhiêu phần tử nằm ngoài màn nhưng không gây hại — con số
+Đọc kết quả: `OVERFLOW: "không"` mà `offenders` rỗng thì trang sạch ở bề rộng đó.
+`ignored_count` cho biết bao nhiêu phần tử nằm ngoài màn nhưng không gây hại — con số
 này lớn là bình thường với trang có carousel hoặc drawer.
 
 

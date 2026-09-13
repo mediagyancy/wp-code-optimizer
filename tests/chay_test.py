@@ -34,9 +34,9 @@ FX = os.path.join(GOC, "fixtures")
 dat, hong = [], []
 
 
-def kiem(ten, dieu_kien, chi_tiet=""):
-    (dat if dieu_kien else hong).append((ten, chi_tiet))
-    print(f"  {'đạt ' if dieu_kien else 'HỎNG'}  {ten}" + (f"   {chi_tiet}" if not dieu_kien else ""))
+def kiem(ten, conditions, chi_tiet=""):
+    (dat if conditions else hong).append((ten, chi_tiet))
+    print(f"  {'đạt ' if conditions else 'HỎNG'}  {ten}" + (f"   {chi_tiet}" if not conditions else ""))
 
 
 def chay(script, *args):
@@ -48,7 +48,7 @@ def chay(script, *args):
 
 # ───────────────────────────────────────────────────── quet_chet.py
 print("\nquet_chet.py — đồ thị khả dụng")
-ma, ra = chay("quet_chet.py", "--theme", os.path.join(FX, "php"), "--tien-to", "fx_")
+ma, ra = chay("quet_chet.py", "--theme", os.path.join(FX, "php"), "--prefix", "fx_")
 
 chet = set(re.findall(r"^   (\S+\.php)\s+\d+ dòng", ra, re.M))
 
@@ -86,11 +86,11 @@ css_file = os.path.join(css_dir, "assets", "css", "main.css")
 goc_css = io.open(css_file, encoding="utf-8").read()
 
 ma, ra = chay("go_css.py", "--theme", css_dir, "--css", "assets/css/main.css",
-              "--tien-to", "fx-")
+              "--prefix", "fx-")
 
-kiem("mặc định KHÔNG ghi file (phải truyền --ghi)",
+kiem("mặc định KHÔNG ghi file (phải truyền --write)",
      io.open(css_file, encoding="utf-8").read() == goc_css,
-     "file đã bị đổi dù không có --ghi")
+     "file đã bị đổi dù không có --write")
 kiem("có in [CHẠY THỬ]", "[CHẠY THỬ]" in ra)
 kiem("hiệu chuẩn: bản hỏng FAIL, bản thật PASS",
      "bản hỏng: FAIL" in ra and "bản thật: PASS" in ra)
@@ -101,7 +101,7 @@ with tempfile.TemporaryDirectory() as tmp:
     tam = os.path.join(tmp, "css")
     shutil.copytree(css_dir, tam)
     ma, ra = chay("go_css.py", "--theme", tam, "--css", "assets/css/main.css",
-                  "--tien-to", "fx-", "--ghi")
+                  "--prefix", "fx-", "--write")
     sau = io.open(os.path.join(tam, "assets", "css", "main.css"), encoding="utf-8").read()
 
 kiem("dấu phẩy trong :is() KHÔNG bị cắt -> không sinh selector rác",
@@ -137,21 +137,21 @@ with tempfile.TemporaryDirectory() as tmp:
         '.fx-song--x { color: green; @media print { .x{a:b} }')
     io.open(p, "w", encoding="utf-8").write(s)
     ma, ra = chay("go_css.py", "--theme", tam, "--css", "assets/css/main.css",
-                  "--tien-to", "fx-", "--ghi")
+                  "--prefix", "fx-", "--write")
     kiem("CSS đầu vào đã hỏng thì TỪ CHỐI ghi", "không ghi" in ra and ma != 0)
 
 # ───────────────────────────────────────────────────── doi_chung_live.py
 print("\ndoi_chung_live.py — fail-closed")
 ma, ra = chay("doi_chung_live.py")
 kiem("không truyền gì thì KHÔNG được báo 'sạch'",
-     "KHONG_KIEM_DUOC" in ra and "NOT_TESTED" in ra and ma != 0,
+     "NOT_CHECKABLE" in ra and "NOT_TESTED" in ra and ma != 0,
      f"exit={ma} — fail-open, đây là lỗi P0 cũ")
 
 kiem("mốc mới: có --loader mà thiếu --ung-vien-file thì vẫn fail-closed",
-     "KHONG_KIEM_DUOC" in chay("doi_chung_live.py", "--site", "https://vidu.test",
+     "NOT_CHECKABLE" in chay("doi_chung_live.py", "--site", "https://vidu.test",
                                "--loader", os.path.join(FX, "php", "functions.php"))[1])
 
-# Danh sách ứng viên RỖNG phải là KHONG_KIEM_DUOC, không phải "khớp".
+# Danh sách ứng viên RỖNG phải là NOT_CHECKABLE, không phải "khớp".
 # Lần đầu viết phép kiểm này nó báo "(khớp)" khi dò 0 file — đúng cái fail-open
 # đã sửa ở doi_chung_live, tái phát trong code mới.
 with tempfile.TemporaryDirectory() as tmp:
@@ -164,7 +164,7 @@ with tempfile.TemporaryDirectory() as tmp:
     # nó còn nằm trong câu giải thích, và một khẳng định quá thô thì hỏng vì lý do
     # sai — vẫn đỏ, nhưng đỏ ở chỗ không phải lỗi.
     kiem("danh sách ứng viên rỗng KHÔNG được báo là khớp",
-         "KHONG_KIEM_DUOC" in ra and "(khớp — mọi ứng viên" not in ra and ma != 0,
+         "NOT_CHECKABLE" in ra and "(khớp — mọi ứng viên" not in ra and ma != 0,
          f"exit={ma} — fail-open trong chính phép kiểm chống fail-open")
 
 # ───────────────────────────────────────────────────── tổng kết

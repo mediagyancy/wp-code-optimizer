@@ -3,7 +3,7 @@
  * CA HIỆU CHUẨN CHO CỔNG GRAPH — hai cạnh mà phân tích tĩnh KHÔNG THỂ giải được.
  *
  * File này không tồn tại để làm tính năng. Nó tồn tại để chứng minh cổng
- * `cong_graph.py` thật sự bắt được vùng mù của đồ thị tĩnh. Không có nó thì cổng chỉ
+ * `graph_gate.py` thật sự bắt được vùng mù của đồ thị tĩnh. Không có nó thì cổng chỉ
  * từng chạy trên những theme mà đồ thị tĩnh vừa đúng — và một phép kiểm chưa bao giờ
  * gặp ca hỏng thì mọi PASS của nó là `NOT_TESTED`, không phải "đã kiểm".
  *

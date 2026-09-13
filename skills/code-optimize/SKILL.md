@@ -58,13 +58,13 @@ Nếu repo có `CLAUDE.md`/`AGENTS.md`, đọc trước — luật repo thắng 
 
 Mỗi cổng là một script **fail-closed**: đóng thì exit khác 0 và nói rõ vì đâu. Không có
 cờ `--force`. Muốn đi qua một cổng đang đóng thì sửa nguyên nhân, hoặc khai tường minh số
-vùng mù bằng `--chap-nhan-mu` và chấp nhận các node đó là `NOT_TESTED`.
+vùng mù bằng `--accept-blind` và chấp nhận các node đó là `NOT_TESTED`.
 
-### [0] Cổng clean — `scripts/cong_clean.py`
+### [0] Cổng clean — `scripts/clean_gate.py`
 
 ```bash
-python scripts/sao_luu.py luu --nguon "đường/dẫn/theme" --ra "backup/theme-2026-09-10"
-python scripts/cong_clean.py --theme "đường/dẫn/theme" --backup "backup/theme-2026-09-10" --tien-to mytheme_
+python scripts/backup.py save --source "đường/dẫn/theme" --out "backup/theme-2026-09-10"
+python scripts/clean_gate.py --theme "đường/dẫn/theme" --backup "backup/theme-2026-09-10" --prefix mytheme_
 ```
 
 Hai điều kiện, thiếu một là chặn: (a) `quet_chet.py` quét lại phải ra **rỗng** — đúng
@@ -74,43 +74,46 @@ Hai điều kiện, thiếu một là chặn: (a) `quet_chet.py` quét lại ph�
 **Backup phải là bản lấy từ HOST qua FTP, không dựng từ git.** Đã có hai ca chứng minh
 git thiếu trên đúng loại codebase này: 20 file đang chạy thật chưa từng vào git, và 9
 file nguồn bị `.gitignore` chặn — "không còn bản sao nào ngoài đĩa". Tải từ host trước,
-rồi `luu`.
+rồi `save`.
 
 Cổng này là kết luận **tĩnh**. Cổng [3] đối chứng nó với runtime.
 
 ### [1] Code nodes — `scripts/code_nodes.py`
 
 ```bash
-python scripts/code_nodes.py --theme "đường/dẫn/theme" --ra "run/graph.json"
+python scripts/code_nodes.py --theme "đường/dẫn/theme" --out "run/graph.json"
 ```
 
-Node: file · hàm · hook · handle asset. Cạnh có kiểu: `require` · `goi` · `khai_bao` ·
-`dang_ky` · `phat` · `enqueue` · `phu_thuoc` · `template_part`. Mọi thứ không phân giải
+Node: `file` · `func` · `hook` · `asset`. Cạnh có kiểu: `require` · `calls` · `declares` ·
+`registration` · `registers` · `emits` · `enqueue` · `depends_on` · `template_part`. Mọi thứ không phân giải
 được — hook tên biến, callback ghép chuỗi, require dựng bằng biến — **đếm vào
-`chua_giai`**, không đoán. Con số đó là thước đo độ tin cậy của chính đồ thị;
+`unresolved`**, không đoán. Con số đó là thước đo độ tin cậy của chính đồ thị;
 nó khác 0 thì mọi kết luận "không ai gọi" phải đọc kèm nó.
 
 Đặt **cạnh** `quet_chet.py`, không sửa nó: `quet_chet.py` trả lời "cái gì chết", file này
 trả lời "cái gì nối với cái gì". Hai câu khác nhau.
 
-### [2] ADN runtime — `tests/integration/adn-nen.php`
+### [2] ADN runtime — `tests/integration/dna.php`
 
 Boot WordPress + WooCommerce thật (drop-in SQLite, không cần MySQL/Docker), render, rồi
-dump **bảy mặt có thứ tự**: file nạp · hook (priority + thứ tự trong bucket + callback →
-`file:dòng`) · chuỗi fire · hàng đợi asset · chữ ký hàm kèm giá trị mặc định · HTML toàn
-văn · và một mặt **tĩnh** đọc điểm truy cập superglobal kèm hàm sanitise bọc ngoài.
+dump **bảy mặt có thứ tự** (tên mặt trong `docs/REFERENCE.md` → `tier5`): `files` · `hooks`
+(priority + thứ tự trong bucket + callback → `file:dòng`) · `fires` · `assets` · `signatures`
+kèm giá trị mặc định · `html` toàn văn · và mặt **tĩnh** `sanitizers` đọc điểm truy cập
+superglobal kèm hàm bọc ngoài.
 
-Mặt tĩnh phải có vì ca "mất lời gọi sanitise" **không để lại dấu runtime nào** trên request
+Mọi tên key/cờ/mã của lane này tra ở `docs/REFERENCE.md`; luật đặt tên ở `CLAUDE.md` §1.
+
+Mặt tĩnh phải có vì ca "mất lời gọi sanitizers" **không để lại dấu runtime nào** trên request
 không mang tham số đó. Đây là lý do Tầng 5 không thể chỉ gồm các mặt runtime.
 
 **Chụp trên staging clone, không chạm site bán hàng.** Chính phép đo đã từng làm host hết
 `max_user_connections` giữa lúc đang kiểm. Mỗi lần một request, có nghỉ, URL canonical,
 không `?cb=`.
 
-### [3] Cổng graph — `scripts/cong_graph.py`
+### [3] Cổng graph — `scripts/graph_gate.py`
 
 ```bash
-python scripts/cong_graph.py --graph run/graph.json --adn run/adn.json --ra run/graph-trust.json
+python scripts/graph_gate.py --graph run/graph.json --dna run/dna.json --out run/graph-trust.json
 ```
 
 Hai chiều lệch, **không đối xứng** có chủ ý:
@@ -118,7 +121,7 @@ Hai chiều lệch, **không đối xứng** có chủ ý:
 | Chiều | Nghĩa | Xử lý |
 |---|---|---|
 | runtime **có** mà tĩnh không thấy | node trông mồ côi nhưng **đang chạy** | **chí mạng** — exit 9 |
-| tĩnh **nói có** mà runtime không có | họ lỗi `TAT_AM_THAM` | báo, phải xử lý |
+| tĩnh **nói có** mà runtime không có | họ lỗi `SILENT_OFF` | báo, phải xử lý |
 
 Cổng đã được hiệu chuẩn bằng fixture cố tình chứa một hook tên biến và một callback ghép
 chuỗi: cổng phải gọi đúng tên hai callback ấy, và phải **về 0 khi gỡ file gây ra chúng**.
@@ -148,7 +151,7 @@ Hình dạng quy trình lấy từ Mikado Method (Ellnestam & Brolund), vì nó 
 1. **Đặt mục tiêu** — phát biểu trạng thái đích.
 2. **Thử** — sửa thật để xem cái gì vỡ. Chỗ vỡ là prerequisite.
 3. **Vẽ** — ghi goal + prerequisite vào **Mikado Graph**. Graph là artefact duy nhất.
-4. **Hoàn tác** — `sao_luu.py phuc_hoi` về trạng thái chạy được **trước khi** đi xử lý
+4. **Hoàn tác** — `backup.py restore` về trạng thái chạy được **trước khi** đi xử lý
    prerequisite. Trạng thái vỡ không được tồn tại qua bước kế.
 5. Lặp 2–4 tới khi hết prerequisite.
 6. **Hiện thực theo thứ tự ngược** — từ lá vào gốc.
@@ -164,11 +167,11 @@ họ đang refactor, khá chắc họ không đang refactor."* Trạng thái tru
 Ghi file **chỉ qua `wp_safe_write.py`** của `wp-delivery` (atomic: backup → temp → check
 → rename, từ chối output rỗng hoặc sai cú pháp).
 
-### [6] Tầng 5 — `tests/integration/tang5.py`
+### [6] Tầng 5 — `tests/integration/tier5.py`
 
 Chụp ADN trước, biến đổi, chụp sau, **hiệu phải rỗng** trên cả bảy mặt. Noise được **đo**
 bằng hai lượt baseline, không đoán: lệch giữa hai lượt không đổi code là noise của chính
-phép đo và bị trừ đi. Hai lượt baseline đã khác nhau thì `NOISE_QUA_LON` — phép đo chưa
+phép đo và bị trừ đi. Hai lượt baseline đã khác nhau thì `NOISE_TOO_HIGH` — phép đo chưa
 dùng được, không phải "gần đúng".
 
 Đã hiệu chuẩn trên WordPress 7.1 + WooCommerce thật: **6/6 ca tiêm bị bắt, và bị bắt bởi
@@ -176,7 +179,7 @@ dùng được, không phải "gần đúng".
 không nâng thầm.
 
 Diff khác rỗng ở một trường không nằm trong danh sách mask đã biện minh → **lùi ngay**
-bằng `sao_luu.py phuc_hoi --ghi`, rồi chạy lại Tầng 5 để **chứng minh đã về đúng nền**.
+bằng `backup.py restore --write`, rồi chạy lại Tầng 5 để **chứng minh đã về đúng nền**.
 "Đã copy xong" không phải "đã lùi xong".
 
 ## Chỉ số được phép hứa — và chỉ khi áp dụng được
@@ -203,7 +206,7 @@ sniff chính thức. Đó là một quyết định, không phải chi tiết.
 - ADN là **lấy mẫu**: chỉ biết những gì tập URL chạm tới. Trang cần đăng nhập, cần giỏ có
   hàng, luồng gửi form/đặt đơn/email đi là `NOT_TESTED` cho tới khi có người thao tác tay.
   Site bán hàng: phép kiểm cuối vẫn là **đặt thử một đơn**.
-- Mặt `fire` đã lọc họ hook `option_*`/`transient_*`/`alloptions` vì cache ấm làm lượt
+- Mặt `fires` đã lọc họ hook `option_*`/`transient_*`/`alloptions` vì cache ấm làm lượt
   sau không fire lại. **Đánh đổi**: mặt này không trả lời "có đổi tập option được đọc không".
 - Observable ngoài HTML body: header, redirect, `wp_mail`, ghi option, REST/AJAX.
 - **Multisite** chưa phủ.
@@ -214,12 +217,12 @@ sniff chính thức. Đó là một quyết định, không phải chi tiết.
 |---|---|
 | `references/cam-bay-bien-doi.md` | trước khi tin bất kỳ tầng xác minh nào — vì sao 4 tầng cũ mù trước 5/6 lỗi |
 | `references/checklist.md` | ở bước [4] — mỗi cổng mang `because`, không cổng nào viện dẫn thẩm quyền không tồn tại |
-| `scripts/cong_clean.py` | cổng [0] — fail-closed |
+| `scripts/clean_gate.py` | cổng [0] — fail-closed |
 | `scripts/code_nodes.py` | bước [1] — đồ thị giả thuyết, đếm vùng mù |
-| `scripts/cong_graph.py` | cổng [3] — đối chứng tĩnh/runtime, hai chiều không đối xứng |
-| `scripts/sao_luu.py` | backup toàn cây + phục hồi **đã diễn tập** (23 khẳng định, kể cả ca nguồn đã mất) |
-| `../../tests/integration/adn-nen.php` | bộ chụp ADN |
-| `../../tests/integration/tang5.py` | Tầng 5 + 6 ca hiệu chuẩn |
+| `scripts/graph_gate.py` | cổng [3] — đối chứng tĩnh/runtime, hai chiều không đối xứng |
+| `scripts/backup.py` | backup toàn cây + phục hồi **đã diễn tập** (23 khẳng định, kể cả ca nguồn đã mất) |
+| `../../tests/integration/dna.php` | bộ chụp ADN |
+| `../../tests/integration/tier5.py` | Tầng 5 + 6 ca hiệu chuẩn |
 
 Mọi script dùng thư viện chuẩn Python. Script nào ghi file cũng theo lối **tạm → kiểm →
 đổi tên**, mặc định là thử, và từ chối ghi khi chưa qua chốt.

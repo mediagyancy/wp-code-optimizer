@@ -108,7 +108,7 @@ tràn ngang = max(documentElement.scrollWidth, body.scrollWidth) − documentEle
 công thức dùng `innerWidth` trả về **0** trên ca tràn **296px** đã biết, vì trong giả
 lập mobile `innerWidth` phình theo nội dung nên hai số cùng phình và phép trừ triệt
 tiêu. Ràng buộc này được ghim bằng khẳng định trong bộ test — khai báo trong file CI, chưa chạy trên runner:
-`scripts/quyet_dinh_tran.py`. Muốn quay về `innerWidth` thì phải làm đỏ một test có tên.
+`scripts/overflow_rule.py`. Muốn quay về `innerWidth` thì phải làm đỏ một test có tên.
 
 **Hai biên khác nhau, và phải biết là chúng khác nhau:**
 
@@ -187,5 +187,5 @@ server tự tắt sau một khoảng không ai dùng.
 | File | Đọc khi nào |
 |---|---|
 | `references/cam-bay-preview.md` | trước khi tin bất kỳ con số nào — các ca hỏng kèm số đo thật |
-| `scripts/quyet_dinh_tran.py` | công thức tràn ngang, tách khỏi trình duyệt để CI ghim được |
+| `scripts/overflow_rule.py` | công thức tràn ngang, tách khỏi trình duyệt để CI ghim được |
 | `scripts/probe.js` | probe chạy trong trang: tràn ngang, thủ phạm, chữ nhỏ nhất, vùng chạm |

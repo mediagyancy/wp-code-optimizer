@@ -55,24 +55,24 @@ jobs:
       # giữ riêng — đó là tình huống thật của một đường lùi.
       - name: code-optimize — diễn tập backup/phục hồi
         shell: bash
-        run: python tests/test_sao_luu.py
+        run: python tests/test_backup.py
 
       # code-optimize: cổng clean fail-closed, hai chiều + ca đối chứng ngược.
       - name: code-optimize — cổng clean
         shell: bash
-        run: python tests/test_cong_clean.py
+        run: python tests/test_clean_gate.py
 
       # Luật đặt tên là luật CỨNG (CLAUDE.md §1): tên phát ra ngoài phải tiếng Việt snake_case,
-      # đếm là so_/tong_, và docs/BANG-THAM-CHIEU.md phải phủ mọi tên của lane mới. Nợ tiếng
-      # Anh của wp-delivery khoanh trong tests/ten-baseline.json — ratchet, chỉ được giảm.
+      # đếm là so_/tong_, và docs/REFERENCE.md phải phủ mọi tên của lane mới. Nợ tiếng
+      # Anh của wp-delivery khoanh trong tests/names-baseline.json — ratchet, chỉ được giảm.
       - name: luật đặt tên + độ phủ bảng tham chiếu
         shell: bash
-        run: python tests/kiem_ten.py
+        run: python tests/check_names.py
 
-      # Đổi tên chỉ qua doi_ten.py — ba chốt (chuỗi con, va chạm, bỏ sót) + phục hồi từng byte.
+      # Đổi tên chỉ qua rename.py — ba chốt (chuỗi con, va chạm, bỏ sót) + phục hồi từng byte.
       - name: code-optimize — đổi tên an toàn
         shell: bash
-        run: python tests/test_doi_ten.py
+        run: python tests/test_rename.py
 
   integration:
     # Tầng mà fixture tĩnh KHÔNG thay được: dựng WordPress + WooCommerce thật rồi
@@ -116,7 +116,7 @@ jobs:
       # năng bắt lỗi, hoặc baseline vừa mất tính tất định. Cả hai đều là tin tốt khi
       # phát hiện ở CI, và là tin rất xấu khi phát hiện trên site của khách.
       - name: Tầng 5 — hiệu chuẩn thước tương đương hành vi (6 ca tiêm)
-        run: python tests/integration/tang5.py --ra .wp-it
+        run: python tests/integration/tier5.py --workdir .wp-it
 
       # Cổng graph — đối chứng đồ thị TĨNH với ADN runtime, hai chiều.
       #
@@ -124,4 +124,4 @@ jobs:
       # CHỨNG NGƯỢC: gỡ đúng file sinh ra hai cạnh động rồi đòi cổng về 0. Báo đúng số
       # mà không biết số đó từ đâu ra thì vẫn có thể là trùng hợp.
       - name: Cổng graph — bắt được vùng mù của phân tích tĩnh
-        run: python tests/integration/test_cong_graph.py --ra .wp-it
+        run: python tests/integration/test_graph_gate.py --workdir .wp-it

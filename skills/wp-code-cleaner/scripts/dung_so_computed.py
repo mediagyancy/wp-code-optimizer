@@ -153,7 +153,7 @@ def main():
         ten = re.sub(r"[^a-z0-9]+", "-", u.replace(site, "").strip("/").lower()) or "goc"
         ten_trang.append(ten)
         h = tai(u).replace("<head>", f'<head><base href="{site}/">', 1)
-        for nhan, tep in (("cu", "main-cu.css"), ("moi", "main-moi.css"), ("hong", "main-hong.css")):
+        for nhan, tep in (("old", "main-cu.css"), ("new", "main-moi.css"), ("hong", "main-hong.css")):
             if nhan == "hong" and i > 0:
                 continue
             g = mau_css.sub(f'href="http://localhost:{a.port}/{tep}"', h)

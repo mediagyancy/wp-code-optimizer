@@ -24,7 +24,7 @@ REPO = os.path.dirname(GOC)
 SKILL = os.path.join(REPO, "skills", "wp-preview-builder")
 sys.path.insert(0, os.path.join(SKILL, "scripts"))
 
-import quyet_dinh_tran as qd  # noqa: E402
+import overflow_rule as qd  # noqa: E402
 
 dat, hong = [], []
 
@@ -105,9 +105,9 @@ def main():
 
     print("\n[1] Hàm quyết định tràn ngang tự hiệu chuẩn")
     ok, dong = qd.hieu_chuan()
-    kiem("bộ hiệu chuẩn của quyet_dinh_tran.py ĐẠT", ok, "\n".join(dong))
+    kiem("bộ hiệu chuẩn của overflow_rule.py ĐẠT", ok, "\n".join(dong))
     kiem("ca tràn 296px có trong bộ hiệu chuẩn",
-         any(c["tran_dung"] == 296 for c in qd.CA_LICH_SU),
+         any(c["expected"] == 296 for c in qd.KNOWN_CASES),
          "thieu ca hong that thi bo hieu chuan khong chung minh gi")
     kiem("công thức cũ ĐƯỢC GIỮ LẠI để chứng minh nó sai",
          qd.tran_ngang_sai_cach_cu(640, 640) == 0 and qd.tran_ngang(640, 344) == 296,
@@ -117,9 +117,9 @@ def main():
          "viewport 0 phai nem loi, khong duoc tra mot con so")
 
     print("\n[2] Bộ bề rộng")
-    kiem("đủ 5 mốc", len(qd.BE_RONG) == 5, str(qd.BE_RONG))
-    kiem("có 344 — màn hẹp nhất có thật, không phải giả định", 344 in qd.BE_RONG)
-    kiem("có 1440 — mốc hay bị rụng khi chép lại danh sách", 1440 in qd.BE_RONG)
+    kiem("đủ 5 mốc", len(qd.WIDTHS) == 5, str(qd.WIDTHS))
+    kiem("có 344 — màn hẹp nhất có thật, không phải giả định", 344 in qd.WIDTHS)
+    kiem("có 1440 — mốc hay bị rụng khi chép lại danh sách", 1440 in qd.WIDTHS)
 
     print("\n[3] Phép kiểm innerWidth tự hiệu chuẩn trước khi được dùng")
     ok_grep, vi_sao = hieu_chuan_phep_grep()
@@ -133,9 +133,9 @@ def main():
         kiem("không có biểu thức nào trừ innerWidth", not dung_innerwidth_de_tinh(s))
         kiem("dùng documentElement.clientWidth", "de.clientWidth" in s)
         kiem("vẫn BÁO CÁO innerWidth để đối chiếu", "innerWidth: window.innerWidth" in s)
-        kiem("fail-closed khi viewport = 0", "LOI_PHEP_DO" in s)
+        kiem("fail-closed khi viewport = 0", "MEASURE_ERROR" in s)
         kiem("kiểm protocol để bắt ca data: URL", "location.protocol" in s)
-        kiem("in ra số phần tử đã lọc, không ẩn đi", "da_loc_bo_vi_vo_hai" in s)
+        kiem("in ra số phần tử đã lọc, không ẩn đi", "ignored_count" in s)
 
     print("\n[5] Tài liệu trong repo không còn dạy công thức cũ")
     for ten in ("QUY-DINH-CLAUDE-WORDPRESS.md", "KINH-NGHIEM-WORDPRESS.md"):

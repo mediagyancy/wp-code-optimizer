@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Gỡ CSS chết: cả rule chết hẳn lẫn VẾ SELECTOR chết nằm lẫn với vế còn sống.
 
-MẶC ĐỊNH LÀ CHẠY THỬ. Phải truyền --ghi mới ghi đè file. Lý do ở ngay dưới.
+MẶC ĐỊNH LÀ CHẠY THỬ. Phải truyền --write mới ghi đè file. Lý do ở ngay dưới.
 
 Hai mức:
   · rule mà mọi class-của-theme đều chết  -> bỏ cả rule
@@ -35,7 +35,7 @@ Bảo vệ tên ghép chuỗi: một class còn sống nếu tên đầy đủ H
 
 Dùng:
   python go_css.py --theme "..." --css assets/css/main.css            # chạy thử
-  python go_css.py --theme "..." --css assets/css/main.css --ghi      # ghi thật
+  python go_css.py --theme "..." --css assets/css/main.css --write      # ghi thật
 """
 import argparse
 import os
@@ -216,13 +216,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--theme", required=True)
     ap.add_argument("--css", required=True, help="đường dẫn CSS, tương đối với --theme")
-    ap.add_argument("--tien-to", default="mytheme-,site-")
-    ap.add_argument("--ghi", action="store_true",
+    ap.add_argument("--prefix", default="mytheme-,site-")
+    ap.add_argument("--write", action="store_true",
                     help="ghi đè file thật. Không có cờ này thì chỉ chạy thử.")
     a = ap.parse_args()
 
     theme = a.theme.rstrip("/\\")
-    tien_to = tuple(x.strip() for x in a.tien_to.split(",") if x.strip())
+    tien_to = tuple(x.strip() for x in a.prefix.split(",") if x.strip())
     P = os.path.join(theme, a.css)
 
     markup = []
@@ -340,9 +340,9 @@ def main():
     if len(bo_rule) > 20:
         print(f"   … và {len(bo_rule)-20} rule nữa")
 
-    if not a.ghi:
+    if not a.write:
         print(f"\n[CHẠY THỬ] {len(raw)/1024:.1f} KB -> {len(moi.encode('utf-8'))/1024:.1f} KB")
-        print("Chưa ghi gì. Xem danh sách trên, thấy đúng thì chạy lại kèm --ghi.")
+        print("Chưa ghi gì. Xem danh sách trên, thấy đúng thì chạy lại kèm --write.")
         return 0
 
     tam = P + ".tmp"

@@ -6,7 +6,7 @@
  * trên trang chủ filter không còn được đăng ký — nhưng filter ấy tác động lên một thứ
  * `index.php` không in ra, nên HTML không đổi.
  *
- * Mặt bắt được: `hook_theme` (callback biến mất khỏi danh sách đăng ký). Đây là ca
+ * Mặt bắt được: `hooks` (callback biến mất khỏi danh sách đăng ký). Đây là ca
  * chứng minh mặt hook bắt được cả việc MẤT cạnh, không chỉ việc ĐỔI THỨ TỰ cạnh.
  */
 

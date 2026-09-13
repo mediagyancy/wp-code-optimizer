@@ -59,7 +59,8 @@ git clone https://github.com/mediagyancy/wp-code-optimizer.git
 cp -r wp-code-optimizer/skills/* ~/.claude/skills/
 ```
 
-Then in Claude Code: `/wp-delivery`, `/wp-code-cleaner`, `/wp-corewebvital`.
+Then in Claude Code: `/wp-delivery`, `/wp-code-cleaner`, `/code-optimize`, `/wp-preview-builder`,
+`/wp-corewebvital`.
 
 Claude also picks them up on its own when you describe a matching task — the `description`
 field in each `SKILL.md` is what drives that.
@@ -70,14 +71,16 @@ field in each `SKILL.md` is what drives that.
 python tests/chay_test.py        # 38 assertions over PHP + CSS fixtures
 python tests/kiem_rieng_tu.py    # no private data leaked into the repo
 python tests/test_preview.py     # 29 — overflow formula pinned against the real 296px incident
-python tests/test_sao_luu.py     # 23 — full-tree backup + a restore that actually runs
-python tests/test_cong_clean.py  # 19 — the /code-optimize entry gate, both directions
+python tests/test_backup.py     # 23 — full-tree backup + a restore that actually runs
+python tests/test_clean_gate.py  # 19 — the /code-optimize entry gate, both directions
+python tests/test_rename.py      # 19 — safe rename: word boundary, collision, byte-exact restore
+python tests/check_names.py      # naming rule (CLAUDE.md §1) + docs/REFERENCE.md coverage, ratcheted
 
 # integration: downloads WordPress + WooCommerce, runs them, compares
 python tests/integration/dung_wp.py --ra .wp-it
-python tests/integration/test_integration.py --ra .wp-it   # 13 — is the cleaner right?
-python tests/integration/tang5.py --ra .wp-it              # 6 injected refactoring bugs, all caught
-python tests/integration/test_cong_graph.py --ra .wp-it    # 18 — static graph vs runtime, both directions
+python tests/integration/test_integration.py --ra .wp-it        # 14 — is the cleaner right?
+python tests/integration/tier5.py --workdir .wp-it              # 6 injected refactoring bugs, all caught
+python tests/integration/test_graph_gate.py --workdir .wp-it    # 18 — static graph vs runtime, both directions
 ```
 
 Every suite self-calibrates: it plants a known-bad case and refuses to report success
@@ -119,6 +122,28 @@ Every script is standalone — run them without Claude if you like.
 | `wp_module_size.py` | File-size gate with a baseline, so legacy files can't quietly grow. |
 | `wp_urlwatch.py` | Watches critical URLs for marker strings — HTTP 200 alone proves nothing. |
 
+**`code-optimize/scripts/`** — every name these emit is in [`docs/REFERENCE.md`](docs/REFERENCE.md)
+
+| Script | What it does |
+|---|---|
+| `clean_gate.py` | Entry gate: refuses (`NOT_CLEAN` / `NO_ROLLBACK`) until the cleaner's scan is empty and the tree matches a backup manifest. |
+| `code_nodes.py` | Static code graph — files, functions, hooks, assets — with every unresolved edge **counted**, not guessed. |
+| `graph_gate.py` | Diffs the static graph against a runtime DNA capture; runtime-only nodes are fatal (`GRAPH_UNTRUSTED`). |
+| `backup.py` | `save` / `check` / `restore` for a whole tree, with a manifest and a restore that verifies itself byte-for-byte. |
+| `rename.py` | Safe identifier rename: word-boundary match, collision precheck, post-count check, byte-exact rollback when `--check` fails. |
+| `../../tests/integration/dna.php` + `tier5.py` | Ordered runtime fingerprint (7 faces) and the fifth verification tier — 6 injected refactoring bugs, all caught. |
+
+**`wp-preview-builder/scripts/`**
+
+| Script | What it does |
+|---|---|
+| `probe.js` | In-page layout probe: overflow from `clientWidth` (never `innerWidth`), offenders, small tap targets, min font. |
+| `overflow_rule.py` | The decision function, pinned in CI against the real 296px false-negative. |
+
+**Naming is a hard rule** (`CLAUDE.md` §1): international English, snake_case, every token
+meaningful, ≤ 4 tokens / ≤ 24 chars, `_count` for counts, `is_`/`has_` for booleans, no
+`--force` anywhere. `tests/check_names.py` enforces it; renames go through `rename.py` only.
+
 ## What these skills refuse to do
 
 - **Claim a check passed when it didn't run.** A missing tool is `UNAVAILABLE` and blocks —
@@ -152,7 +177,7 @@ Version **0.6.0**. Pre-1.0: CLI flags and output format may still change.
 | Reachability graph (PHP) | **tested** | 13 assertions over a fixture covering seven `require` forms, `get_template_part` with/without slug, JS embedded in PHP |
 | Fail-closed behaviour | **tested** | every tool must fail its own known-bad case before it writes anything |
 | Cross-platform | **tested in CI** | Ubuntu + Windows × Python 3.9 / 3.12 |
-| Behaviour on a running WordPress | **tested in CI** | 13 assertions against a real WordPress + WooCommerce install: what the tools call dead is checked against `get_included_files()`, the rendered HTML and `$wp_filter` reported by WordPress itself |
+| Behaviour on a running WordPress | **tested in CI** | 14 assertions against a real WordPress + WooCommerce install: what the tools call dead is checked against `get_included_files()`, the rendered HTML and `$wp_filter` reported by WordPress itself |
 
 **How the integration tier works:** `tests/integration/` downloads WordPress and
 WooCommerce from wordpress.org, installs them on a SQLite drop-in (no MySQL, no Docker
@@ -233,7 +258,8 @@ git clone https://github.com/mediagyancy/wp-code-optimizer.git
 cp -r wp-code-optimizer/skills/* ~/.claude/skills/
 ```
 
-Rồi gọi `/wp-delivery`, `/wp-code-cleaner`, `/wp-corewebvital`. Claude cũng tự nhận ra khi
+Rồi gọi `/wp-delivery`, `/wp-code-cleaner`, `/code-optimize`, `/wp-preview-builder`,
+`/wp-corewebvital`. Claude cũng tự nhận ra khi
 anh mô tả một việc khớp — phần `description` trong mỗi `SKILL.md` lo chuyện đó.
 
 ## Chạy test
@@ -242,14 +268,16 @@ anh mô tả một việc khớp — phần `description` trong mỗi `SKILL.md`
 python tests/chay_test.py        # 38 khẳng định trên fixture PHP + CSS
 python tests/kiem_rieng_tu.py    # không có dữ liệu riêng lọt vào repo
 python tests/test_preview.py     # 29 — công thức tràn ngang ghim bằng ca 296px thật
-python tests/test_sao_luu.py     # 23 — backup toàn cây + một lần phục hồi CHẠY THẬT
-python tests/test_cong_clean.py  # 19 — cổng vào của /code-optimize, hai chiều
+python tests/test_backup.py     # 23 — backup toàn cây + một lần phục hồi CHẠY THẬT
+python tests/test_clean_gate.py  # 19 — cổng vào của /code-optimize, hai chiều
+python tests/test_rename.py      # 19 — đổi tên an toàn: ranh giới từ, va chạm, phục hồi từng byte
+python tests/check_names.py      # luật đặt tên (CLAUDE.md §1) + độ phủ docs/REFERENCE.md, ratchet
 
 # integration: tự tải WordPress + WooCommerce, chạy thật rồi so kết quả
 python tests/integration/dung_wp.py --ra .wp-it
-python tests/integration/test_integration.py --ra .wp-it   # 13 — cleaner kết luận có đúng không?
-python tests/integration/tang5.py --ra .wp-it              # 6 lỗi refactor tiêm vào, bắt hết
-python tests/integration/test_cong_graph.py --ra .wp-it    # 18 — đồ thị tĩnh vs runtime, hai chiều
+python tests/integration/test_integration.py --ra .wp-it        # 14 — cleaner kết luận có đúng không?
+python tests/integration/tier5.py --workdir .wp-it              # 6 lỗi refactor tiêm vào, bắt hết
+python tests/integration/test_graph_gate.py --workdir .wp-it    # 18 — đồ thị tĩnh vs runtime, hai chiều
 ```
 
 Mọi bộ đều tự hiệu chuẩn: gieo một ca hỏng đã biết rồi từ chối báo đạt nếu phép kiểm
@@ -296,7 +324,7 @@ Phiên bản **0.6.0**. Trước 1.0, tham số dòng lệnh và định dạng 
 | Đồ thị khả dụng (PHP) | **đã test** | 13 khẳng định trên fixture có bảy dạng `require`, `get_template_part` có/không hậu tố, JS nhúng trong PHP |
 | Hành vi fail-closed | **đã test** | mọi công cụ phải FAIL đúng ca hỏng của chính nó rồi mới được ghi |
 | Chạy trên hai hệ điều hành | **đã test trong CI** | Ubuntu + Windows × Python 3.9 / 3.12 |
-| Hành vi trên WordPress đang chạy | **đã test trong CI** | 13 khẳng định trên một WordPress + WooCommerce cài thật: kết luận của tool được so với `get_included_files()`, HTML render ra và `$wp_filter` do chính WordPress cung cấp |
+| Hành vi trên WordPress đang chạy | **đã test trong CI** | 14 khẳng định trên một WordPress + WooCommerce cài thật: kết luận của tool được so với `get_included_files()`, HTML render ra và `$wp_filter` do chính WordPress cung cấp |
 
 **Tầng integration chạy thế nào:** `tests/integration/` tải WordPress và WooCommerce từ
 wordpress.org, cài trên drop-in SQLite (không cần MySQL, không cần Docker), kích hoạt một

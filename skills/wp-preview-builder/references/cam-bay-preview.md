@@ -29,7 +29,7 @@ chữa bằng cách đổi công cụ.
 **Luật:** cấm `window.innerWidth` trong mọi script đo layout. Probe vẫn *báo cáo* giá
 trị `innerWidth` để đối chiếu, nhưng không dùng nó để tính.
 
-**Đã ghim bằng khẳng định:** `scripts/quyet_dinh_tran.py` giữ cả hai công thức và bắt
+**Đã ghim bằng khẳng định:** `scripts/overflow_rule.py` giữ cả hai công thức và bắt
 buộc phải tồn tại một ca mà chúng cho kết quả khác nhau. Bộ hiệu chuẩn nào không phân
 biệt được hai công thức thì không kiểm gì cả — đó là lý do ca 296px nằm trong code chứ
 không nằm trong tài liệu.
