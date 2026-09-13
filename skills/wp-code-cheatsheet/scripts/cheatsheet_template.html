@@ -1,0 +1,167 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cheatsheet __PROJECT__</title>
+<style>
+  :root{
+    --nen:#E8E6E1; --the:#FFFFFF; --hang:#F3F2EE; --hang-hover:#ECEAE4; --vien:#D9D6CE;
+    --chu:#1B1D22; --chu-mo:#5C6068; --mono:#1B1D22;
+    --nhan:#2457A6; --nhan-chu:#FFFFFF; --mo-ta-nen:#DDE8F7; --mo-ta-chu:#1B1D22;
+    --code-nen:#2B2D31; --code-chu:#E9E7E2; --code-ra:#1E2023; --code-ra-chu:#D6D3CC;
+    --thu-tu:#1E7F4F; --ma:#8A5A00; --ma-nen:#F6E9CF; --co:#4A5568;
+    --tim:#FFFFFF; --tim-vien:#B9B5AB;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --nen:#1C1E22; --the:#F6F5F1; --hang:#EBE9E3; --hang-hover:#E1DED6; --vien:#CFCBC1;
+      --chu:#1B1D22; --chu-mo:#5C6068; --mono:#1B1D22;
+      --nhan:#2457A6; --nhan-chu:#FFFFFF; --mo-ta-nen:#DCE7F6; --mo-ta-chu:#1B1D22;
+      --code-nen:#2B2D31; --code-chu:#E9E7E2; --code-ra:#1E2023; --code-ra-chu:#D6D3CC;
+      --thu-tu:#1E7F4F; --ma:#8A5A00; --ma-nen:#F3E5C9; --co:#4A5568;
+      --tim:#2A2D33; --tim-vien:#3C4048;
+    }
+    :root:not([data-theme="light"]) .tim input{color:#E9E7E2}
+    :root:not([data-theme="light"]) .dau,:root:not([data-theme="light"]) .dau a{color:#E9E7E2}
+    :root:not([data-theme="light"]) .dau .phu{color:#A9ADB5}
+  }
+  :root[data-theme="dark"]{
+    --nen:#1C1E22; --the:#F6F5F1; --hang:#EBE9E3; --hang-hover:#E1DED6; --vien:#CFCBC1;
+    --chu:#1B1D22; --chu-mo:#5C6068; --mono:#1B1D22;
+    --nhan:#2457A6; --nhan-chu:#FFFFFF; --mo-ta-nen:#DCE7F6; --mo-ta-chu:#1B1D22;
+    --code-nen:#2B2D31; --code-chu:#E9E7E2; --code-ra:#1E2023; --code-ra-chu:#D6D3CC;
+    --thu-tu:#1E7F4F; --ma:#8A5A00; --ma-nen:#F3E5C9; --co:#4A5568;
+    --tim:#2A2D33; --tim-vien:#3C4048;
+  }
+  :root[data-theme="dark"] .tim input{color:#E9E7E2}
+  :root[data-theme="dark"] .dau,:root[data-theme="dark"] .dau a{color:#E9E7E2}
+  :root[data-theme="dark"] .dau .phu{color:#A9ADB5}
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--nen);color:var(--chu);font:15px/1.5 "IBM Plex Sans",system-ui,"Segoe UI",sans-serif}
+  .dau{max-width:1440px;margin:0 auto;padding:22px 20px 8px;display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 20px;color:var(--chu)}
+  .dau h1{font-size:19px;font-weight:600;margin:0;letter-spacing:.01em}
+  .dau .phu{font-size:13px;color:var(--chu-mo)}
+  .dau .phu code{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px}
+  .tim{max-width:1440px;margin:0 auto;padding:6px 20px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .tim input{flex:1 1 320px;min-width:200px;padding:9px 12px;border:1px solid var(--tim-vien);border-radius:4px;background:var(--tim);color:var(--chu);font:14px "IBM Plex Sans",system-ui,sans-serif}
+  .tim input:focus{outline:2px solid var(--nhan);outline-offset:1px}
+  .tim .dem{font-size:13px;color:var(--chu-mo);font-variant-numeric:tabular-nums;min-width:12ch}
+  .chu-giai{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--chu-mo)}
+  .chu-giai span{display:inline-flex;align-items:center;gap:5px}
+  .cot{max-width:1440px;margin:0 auto;padding:0 20px 40px;columns:4 300px;column-gap:20px}
+  .the{background:var(--the);border-radius:3px;padding:18px 18px 12px;margin:0 0 20px;break-inside:avoid;display:inline-block;width:100%}
+  .the h2{font-size:22px;font-weight:400;margin:0 0 2px;letter-spacing:-.01em;text-wrap:balance}
+  .the .lenh{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px;color:var(--chu-mo);margin:0 0 12px;word-break:break-all}
+  .the h3{font-size:13px;font-weight:600;margin:14px 0 6px;color:var(--chu-mo);letter-spacing:.06em;text-transform:uppercase}
+  .ds{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+  .hang{margin:0}
+  .hang button{width:100%;display:flex;align-items:center;gap:8px;padding:7px 10px;border:0;border-radius:2px;background:var(--hang);color:var(--mono);text-align:left;cursor:pointer;font:500 12.5px/1.35 "JetBrains Mono",ui-monospace,monospace}
+  .hang button:hover{background:var(--hang-hover)}
+  .hang button:focus-visible{outline:2px solid var(--nhan);outline-offset:1px}
+  .hang button .ten{flex:1;word-break:break-all}
+  .hang button .mui{color:var(--chu-mo);font-size:11px;transition:transform .15s}
+  .hang button .kieu{font:400 11px "IBM Plex Sans",system-ui,sans-serif;color:var(--chu-mo);white-space:nowrap}
+  .hang .tt{display:inline-block;padding:1px 6px;border-radius:2px;font:600 10px/1.5 "IBM Plex Sans",system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#fff;background:var(--thu-tu);white-space:nowrap}
+  .hang.ma button{background:var(--ma-nen);color:var(--ma)}
+  .hang.mo button{background:var(--nhan);color:var(--nhan-chu)}
+  .hang.mo button .mui{transform:rotate(90deg);color:var(--nhan-chu)}
+  .hang.mo button .kieu{color:var(--nhan-chu);opacity:.85}
+  .hang .than{display:none;background:var(--mo-ta-nen);color:var(--mo-ta-chu);padding:12px 14px 14px;font-size:13.5px;line-height:1.55;border-radius:0 0 2px 2px}
+  .hang.mo .than{display:block}
+  .than p{margin:0 0 8px}
+  .than p:last-child{margin-bottom:0}
+  .than .vd{margin:10px 0 0;border-radius:3px;overflow:hidden;font:12px/1.5 "JetBrains Mono",ui-monospace,monospace}
+  .than .vd pre{margin:0;padding:10px 12px;overflow-x:auto;white-space:pre}
+  .than .vd .vao{background:var(--code-nen);color:var(--code-chu)}
+  .than .vd .ra{background:var(--code-ra);color:var(--code-ra-chu)}
+  .hang.an{display:none}
+  .the.an{display:none}
+  .luat{font-size:13px;line-height:1.5}
+  .luat table{border-collapse:collapse;width:100%;font-size:12.5px}
+  .luat td{padding:5px 6px;border-top:1px solid var(--vien);vertical-align:top}
+  .luat td:first-child{width:38%}
+  .luat code{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.5px}
+  .luat .dung{color:var(--thu-tu)}
+  .luat .sai{color:#A83A2C;text-decoration:line-through}
+  .exit td:first-child{font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:600;width:auto;white-space:nowrap}
+  @media (prefers-reduced-motion: reduce){.hang button .mui{transition:none}}
+</style>
+
+
+<header class="dau">
+  <h1>Cheatsheet <code>__PROJECT__</code></h1>
+  <span class="phu">mọi tên dự án phát ra ngoài, sinh từ code · một namespace mỗi object · <code>cheatsheet.py</code> · bấm một dòng để mở</span>
+</header>
+<div class="tim">
+  <input id="q" type="search" placeholder="lọc theo tên, mô tả, file… (vd. option, wp_ajax, NO_DOC)" aria-label="Lọc cheatsheet" autocomplete="off">
+  <span class="dem" id="dem"></span>
+  <span class="chu-giai"><span><i class="tt" style="display:inline-block;padding:1px 6px;border-radius:2px;font:600 10px/1.5 'IBM Plex Sans';color:#fff;background:var(--thu-tu)">NO_DOC</i> = chưa có mô tả trong code — nợ tài liệu</span><span><i style="display:inline-block;width:12px;height:12px;background:var(--ma-nen);border:1px solid var(--ma);border-radius:2px"></i> unresolved: tên dựng bằng biến, bảng không đoán</span></span>
+</div>
+
+<main class="cot" id="cot"></main>
+
+<script>
+const SHEET = __DATA__;
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+const at = x => `${x.file}:${x.line}`;
+const sig = f => f.params.map(p=>"$"+p.name+(p.default!=null?" = "+p.default:"")).join(", ");
+const D = [];
+const c = SHEET.counts;
+D.push({obj:"tong-quan", tieu:"Tổng quan", lenh:`prefix: ${SHEET.prefix.length?SHEET.prefix.join(", "):"tất cả"}`,
+  ghi:`${c.functions} hàm (${c.undocumented} chưa có mô tả) · ${c.hooks} hook tự phát · ${c.registrations} đăng ký · ${c.options} key option · ${c.assets} asset · unresolved ${c.unresolved}.`,
+  muc: Object.entries(c).filter(([k,v])=>v||k==="undocumented"||k==="unresolved").map(([k,v])=>[k,"int",k==="undocumented"?"Hàm không có docblock ngay trên — nợ tài liệu.":k==="unresolved"?"Tên dựng bằng biến, KHÔNG đoán.":"",String(v),false,k==="undocumented"&&v>0||k==="unresolved"&&v>0])});
+if(SHEET.functions.length) D.push({obj:"functions", tieu:"functions", lenh:"hàm của dự án — chữ ký là hợp đồng", ghi:"Tham số có thứ tự; giá trị mặc định là hành vi. Đổi mặc định không đổi HTML nhưng đổi số lần gọi sau.",
+  muc: SHEET.functions.map(f=>[f.name+"( "+sig(f)+" )", f.documented?"":"NO_DOC", f.summary||"Không có docblock ngay trên hàm.", at(f), false, !f.documented])});
+if(SHEET.hooks.length) D.push({obj:"hooks", tieu:"hooks", lenh:"do_action / apply_filters của dự án", ghi:"Đây là chỗ plugin con móc vào. Đổi tên hook là plugin con IM LẶNG ngừng chạy.",
+  muc: SHEET.hooks.map(h=>[h.name, h.kind+" · "+h.arg_count+" tham số", h.summary||"Không có comment ngay trên.", at(h), false, !h.summary])});
+if(SHEET.registrations.length) D.push({obj:"registrations", tieu:"registrations", lenh:"add_action / add_filter", ghi:"Cùng priority thì chạy theo THỨ TỰ ĐĂNG KÝ — thứ tự require quyết định.",
+  muc: SHEET.registrations.map(r=>[r.hook+" → "+r.callback, "p"+r.priority, "", at(r), true, false])});
+if(SHEET.shortcodes.length) D.push({obj:"shortcodes", tieu:"shortcodes", lenh:"add_shortcode", ghi:"Nội dung trong database đang gọi tag này — đổi tên là bài viết hiện tag thô.",
+  muc: SHEET.shortcodes.map(s=>["["+s.tag+"]", "", "callback "+s.callback, at(s), false, false])});
+if(SHEET.ajax.length) D.push({obj:"ajax", tieu:"ajax", lenh:"wp_ajax_* / wp_ajax_nopriv_*", ghi:"nopriv = khách vãng lai gọi được: bề mặt công khai, ưu tiên rà soát.",
+  muc: SHEET.ajax.map(a=>[a.action, a.is_public?"nopriv":"đăng nhập", "callback "+a.callback, at(a), false, a.is_public])});
+if(SHEET.rest_routes.length) D.push({obj:"rest_routes", tieu:"rest_routes", lenh:"register_rest_route", ghi:"Bề mặt công khai.",
+  muc: SHEET.rest_routes.map(r=>[r.namespace+r.route, "", "", at(r), false, false])});
+if(SHEET.constants.length) D.push({obj:"constants", tieu:"constants", lenh:"define()", ghi:"",
+  muc: SHEET.constants.map(k=>[k.name, k.is_literal?"literal":"biểu thức", "", "= "+k.value+"\n"+at(k), false, false])});
+if(SHEET.options.length) D.push({obj:"options", tieu:"options", lenh:"get_option / update_option / get_theme_mod", ghi:"Key lưu trong DATABASE. Đổi tên key là mất cài đặt của mọi site đang chạy.",
+  muc: SHEET.options.map(o=>[o.name, o.kind, `đọc ${o.read_count} · ghi ${o.write_count}`, o.files.join("\n"), false, o.write_count===0&&o.read_count>0])});
+if(SHEET.assets.length) D.push({obj:"assets", tieu:"assets", lenh:"wp_enqueue_script / wp_enqueue_style", ghi:"deps là thứ tự nạp; ver là cache-busting.",
+  muc: SHEET.assets.map(a=>[a.handle, a.asset_type, (a.deps.length?"deps: "+a.deps.join(", "):"không phụ thuộc")+(a.ver?" · ver "+a.ver:""), a.src+"\n"+at(a), false, false])});
+if(SHEET.templates.length||SHEET.template_parts.length) D.push({obj:"templates", tieu:"templates", lenh:"template hierarchy + get_template_part", ghi:"",
+  muc: SHEET.templates.map(t=>[t.path,"template","","",false,false]).concat(SHEET.template_parts.map(p=>[p.slug+(p.name?" · "+p.name:""),"part","",at(p),false,false]))});
+if(SHEET.cli.length) D.push({obj:"cli", tieu:"cli", lenh:"argparse", ghi:"Cờ dòng lệnh của script Python trong dự án.",
+  muc: SHEET.cli.map(x=>[(x.command?x.command+" ":"")+x.flag, x.script, x.help||"", "", false, false])});
+if(SHEET.unresolved_count) D.push({obj:"unresolved", tieu:"unresolved", lenh:`${SHEET.unresolved_count} chỗ — bảng KHÔNG đoán`, ghi:"Tên dựng bằng biến hoặc lời gọi không đọc được. Muốn bảng phủ hết thì viết tên thành literal.",
+  muc: Object.entries(SHEET.unresolved).flatMap(([k,items])=>items.map(it=>[k, "", it.expr||it.func||"", at(it), false, true]))});
+
+const cot=document.getElementById("cot");
+let tong=0;
+for(const o of D){
+  const the=document.createElement("section"); the.className="the"; the.dataset.obj=o.obj;
+  let h=`<h2>${esc(o.tieu)}</h2>`;
+  if(o.lenh) h+=`<p class="lenh">${esc(o.lenh)}</p>`;
+  if(o.ghi) h+=`<p class="luat" style="margin:0 0 10px;color:var(--chu-mo)">${esc(o.ghi)}</p>`;
+  h+=`<ul class="ds">`;
+  for(const [ten,kieu,mota,vd,tt,ma] of o.muc){
+    tong++;
+    h+=`<li class="hang${ma?" ma":""}" data-t="${esc((ten+" "+kieu+" "+mota+" "+(vd||"")).toLowerCase())}">
+      <button type="button" aria-expanded="false"><span class="mui">›</span><span class="ten">${esc(ten)}</span>${tt?`<span class="tt">thứ tự</span>`:""}${kieu?`<span class="kieu">${esc(kieu)}</span>`:""}</button>
+      <div class="than">${mota?`<p>${esc(mota)}</p>`:""}${vd?`<div class="vd"><pre class="ra">${esc(vd)}</pre></div>`:""}</div></li>`;
+  }
+  h+=`</ul>`;
+  the.innerHTML=h; cot.appendChild(the);
+}
+cot.addEventListener("click",e=>{
+  const b=e.target.closest(".hang button"); if(!b) return;
+  const li=b.parentElement; const mo=li.classList.toggle("mo"); b.setAttribute("aria-expanded",mo?"true":"false");
+});
+const q=document.getElementById("q"), dem=document.getElementById("dem");
+function loc(){
+  const t=q.value.trim().toLowerCase(); let hien=0;
+  document.querySelectorAll("[data-t]").forEach(el=>{const ok=!t||el.dataset.t.includes(t); el.classList.toggle("an",!ok); if(ok)hien++;});
+  document.querySelectorAll(".the").forEach(s=>{const con=s.querySelectorAll("[data-t]:not(.an)").length; s.classList.toggle("an",con===0);});
+  dem.textContent=t?`${hien} / ${tong} mục`:`${tong} mục`;
+}
+q.addEventListener("input",loc); loc();
+</script>

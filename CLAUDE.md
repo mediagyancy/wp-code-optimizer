@@ -122,7 +122,7 @@ Từ bản tóm tắt Clean Code (viblo). Chỉ liệt kê những mục repo **
 ## Trước khi commit
 
 ```
-python tests/chay_test.py · test_preview.py · test_backup.py · test_clean_gate.py · test_rename.py
+python tests/chay_test.py · test_preview.py · test_backup.py · test_clean_gate.py · test_rename.py · test_cheatsheet.py
 python tests/kiem_rieng_tu.py
 python tests/check_names.py
 ```

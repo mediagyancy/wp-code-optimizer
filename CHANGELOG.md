@@ -232,6 +232,26 @@ nhất → test → C → B" bắt được va chạm nhưng **không** bắt b�
 vì trên Windows nó trả CRLF cho file LF (đo được, đúng cạm bẫy `checkout.css` 1.049 byte).
 19 khẳng định, mỗi chốt một ca hỏng một ca đúng.
 
+### Thêm — skill `wp-code-cheatsheet` — bảng tra sinh từ code cho BẤT KỲ dự án nào
+
+Bảng tham chiếu của repo này (kiểu Haravan) hữu ích tới mức chủ repo muốn nó cho mọi dự án.
+`skills/wp-code-cheatsheet/scripts/cheatsheet.py` quét một cây (theme/plugin/repo) và sinh
+**từ code** bảng: `functions` (chữ ký, mặc định, docblock), `hooks` dự án tự phát,
+`registrations`, `shortcodes`, `ajax` (kèm `is_public`), `rest_routes`, `constants`, `options`
+(key trong database, đếm đọc/ghi), `assets`, `templates`/`template_parts`, và `cli` (argparse —
+để bảng chạy được trên chính repo công cụ). Ba định dạng một nguồn: JSON tất định (không
+timestamp, diff được), Markdown để commit, HTML tự chứa có lọc.
+
+Ba luật giữ bảng trung thực: tên dựng bằng biến vào `unresolved` và được **đếm**, không đoán;
+docblock chỉ tính khi đứng **ngay trên** hàm (docblock đầu file + `defined()` + `function` là
+ca mồi có trong bộ hiệu chuẩn) nên `undocumented` là thước nợ tài liệu thật; và script **từ
+chối ghi** khi bộ hiệu chuẩn nội bộ đỏ (`UNCALIBRATED`). `tests/test_cheatsheet.py` — 30
+khẳng định — còn chứng minh bộ hiệu chuẩn ấy **đỏ được**: bỏ lọc `<script>` thì ca mồi 1 đỏ,
+đổi regex docblock sang lazy thì ca mồi 2 đỏ. Đối chứng ngược: xoá `inc/tham-so.php` khỏi
+fixture → `fxb_gia` biến mất và `functions` giảm đúng 1, các mục khác không đổi.
+
+Không phủ (ghi trong SKILL.md): JavaScript, class/method PHP, CSS class.
+
 ### Thêm — skill `wp-preview-builder`
 
 Gom kinh nghiệm dựng và nghiệm thu bản xem trước thành luật, mỗi luật kèm ca hỏng đã trả
