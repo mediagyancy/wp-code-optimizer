@@ -36,7 +36,7 @@
  * Đổi sang `innerWidth` sẽ làm đỏ một test có tên.
  */
 (() => {
-  const PROBE_VERSION = "wp-preview-builder/1.0.0";
+  const PHIEN_BAN_PROBE = "wp-preview-builder/1.0.0";
 
   // Biên ở hai mức KHÁC NHAU, có chủ ý — xem SKILL.md mục 4.
   //   mức trang:   0px, tràn 1px vẫn là tràn (hiệu của hai phép đo nguyên)
@@ -49,7 +49,7 @@
 
   if (!vw) {
     return {
-      PROBE_VERSION,
+      PHIEN_BAN_PROBE,
       LOI_PHEP_DO: "viewport = 0 — mọi số đo vô nghĩa. Đợi 1 giây rồi đo lại.",
       protocol: location.protocol,
     };
@@ -130,7 +130,7 @@
   }
 
   return {
-    PROBE_VERSION,
+    PHIEN_BAN_PROBE,
     protocol: location.protocol,
     viewport: vw,
     clientWidth: vw,

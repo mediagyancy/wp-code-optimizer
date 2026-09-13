@@ -62,6 +62,18 @@ jobs:
         shell: bash
         run: python tests/test_cong_clean.py
 
+      # Luật đặt tên là luật CỨNG (CLAUDE.md §1): tên phát ra ngoài phải tiếng Việt snake_case,
+      # đếm là so_/tong_, và docs/BANG-THAM-CHIEU.md phải phủ mọi tên của lane mới. Nợ tiếng
+      # Anh của wp-delivery khoanh trong tests/ten-baseline.json — ratchet, chỉ được giảm.
+      - name: luật đặt tên + độ phủ bảng tham chiếu
+        shell: bash
+        run: python tests/kiem_ten.py
+
+      # Đổi tên chỉ qua doi_ten.py — ba chốt (chuỗi con, va chạm, bỏ sót) + phục hồi từng byte.
+      - name: code-optimize — đổi tên an toàn
+        shell: bash
+        run: python tests/test_doi_ten.py
+
   integration:
     # Tầng mà fixture tĩnh KHÔNG thay được: dựng WordPress + WooCommerce thật rồi
     # hỏi chính nó file nào được nạp và class nào được render, sau đó so với kết

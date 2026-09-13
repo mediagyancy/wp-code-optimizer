@@ -65,16 +65,16 @@ def main():
     kiem("code_nodes.py chạy xong, exit 0", ma == 0, ra[-400:])
     g = json.load(open(graph, encoding="utf-8"))
     kiem("tự khai đúng 2 cạnh không phân giải được",
-         g["dynamic_unresolved_tong"] == 2,
-         f"tự khai {g['dynamic_unresolved_tong']}, mong 2")
+         g["so_chua_giai"] == 2,
+         f"tự khai {g['so_chua_giai']}, mong 2")
     kiem("một cạnh là HOOK TÊN BIẾN",
-         len(g["dynamic_unresolved"]["hook_ten_bien"]) == 1,
-         str(g["dynamic_unresolved"]["hook_ten_bien"]))
+         len(g["chua_giai"]["hook_ten_bien"]) == 1,
+         str(g["chua_giai"]["hook_ten_bien"]))
     kiem("một cạnh là CALLBACK GHÉP CHUỖI",
-         len(g["dynamic_unresolved"]["callback_bien"]) == 1,
-         str(g["dynamic_unresolved"]["callback_bien"]))
+         len(g["chua_giai"]["callback_bien"]) == 1,
+         str(g["chua_giai"]["callback_bien"]))
     kiem("cạnh phụ thuộc asset được đọc (deps nằm sau một tham số có dấu ngoặc)",
-         any(e["loai"] == "phu_thuoc" for e in g["edges"]),
+         any(e["loai"] == "phu_thuoc" for e in g["canh"]),
          "khong co canh phu_thuoc — regex mot phat lai an mat mang deps")
 
     # ── 2. ADN runtime
@@ -91,7 +91,7 @@ def main():
     kiem("exit KHÁC 0 khi có vùng mù (fail-closed)", ma == 9, f"exit={ma}")
     kiem("in ra GRAPH_KHONG_DANG_TIN", "GRAPH_KHONG_DANG_TIN" in ra)
     t = json.load(open(trust, encoding="utf-8"))
-    kiem("đếm đúng 2 vùng mù", t["tong_vung_mu"] == 2, f"dem {t['tong_vung_mu']}")
+    kiem("đếm đúng 2 vùng mù", t["so_vung_mu"] == 2, f"dem {t['so_vung_mu']}")
     mu_hook = [x for x in t["chi_runtime_co"]["hook"]]
     kiem("gọi đúng TÊN hai callback mà tĩnh không thấy",
          sorted(x[2] for x in mu_hook) == ["fxb_dong_a", "fxb_dong_b"],
@@ -132,7 +132,7 @@ def main():
     ma, ra = chay(os.path.join(SCRIPTS, "code_nodes.py"), "--theme", tam, "--ra", graph2)
     g2 = json.load(open(graph2, encoding="utf-8"))
     kiem("bỏ file động thì đồ thị tĩnh tự khai 0 vùng mù",
-         g2["dynamic_unresolved_tong"] == 0, f"tu khai {g2['dynamic_unresolved_tong']}")
+         g2["so_chua_giai"] == 0, f"tu khai {g2['so_chua_giai']}")
 
     # Chụp ADN của chính cây đã gỡ file, rồi so — đây mới là đối chứng thật.
     adn2 = os.path.join(W, "adn-khong-dong.json")

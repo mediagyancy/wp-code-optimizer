@@ -15,7 +15,7 @@
  *      thì chỉ thấy một biến, không thấy tên.
  *   2. TÊN CALLBACK GHÉP CHUỖI. Phân tích tĩnh thấy hai literal rời, không thấy hàm.
  *
- * Đồ thị tĩnh phải ĐẾM cả hai vào `dynamic_unresolved` chứ không được đoán — đoán ở
+ * Đồ thị tĩnh phải ĐẾM cả hai vào `chua_giai` chứ không được đoán — đoán ở
  * đây là bịa ra một cạnh, mà cạnh bịa tệ hơn cạnh thiếu: cạnh thiếu làm ta thận trọng,
  * cạnh bịa làm ta tự tin. Còn ADN runtime thì thấy cả hai, vì lúc chạy chúng là hai
  * callback thật trong `$wp_filter`.

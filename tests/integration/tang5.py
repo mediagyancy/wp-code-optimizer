@@ -15,11 +15,11 @@ sau, rồi đòi hiệu bằng rỗng. Bảy mặt, mỗi mặt bắt một họ
     hook      (hook, priority, thứ tự trong bucket, callback, file:dòng)
     fire      chuỗi hook fire thật, THEO THỨ TỰ THỰC THI
     asset     hàng đợi script/style + handle do theme đăng ký
-    chuky     tên hàm -> tham số có thứ tự kèm GIÁ TRỊ MẶC ĐỊNH
+    chu_ky    tên hàm -> tham số có thứ tự kèm GIÁ TRỊ MẶC ĐỊNH
     html      HTML toàn văn, so theo byte sau khi mask
-    sanit     TĨNH: mỗi điểm đọc superglobal -> hàm sanitise bọc ngoài
+    sanitise  TĨNH: mỗi điểm đọc superglobal -> hàm sanitise bọc ngoài
 
-Mặt `sanit` là mặt tĩnh duy nhất, và nó phải tồn tại: ca "mất lời gọi sanitise" không
+Mặt `sanitise` là mặt tĩnh duy nhất, và nó phải tồn tại: ca "mất lời gọi sanitise" không
 để lại dấu nào ở runtime trên request không có tham số đó.
 
 BA KỶ LUẬT, cả ba là cổng chứ không phải cảnh báo
@@ -189,7 +189,7 @@ def chup(W, goc_theme):
         if d.get("loi"):
             return None, d["loi"] + ": " + json.dumps(d, ensure_ascii=False)[:300]
         d["html_mask"] = mask_html(d.pop("html_tho"))
-        d["sanit"] = mat_sanit(goc_theme)
+        d["sanitise"] = mat_sanit(goc_theme)
         return d, None
     return None, "KHONG_CHUP_DUOC: switch_theme khong on dinh sau 3 lan"
 
@@ -203,10 +203,10 @@ def bay_mat(d):
         "fire": loc_noise_fire(d["chuoi_fire"]),
         "asset": {"script_queue": d["scripts"]["queue"], "script_theme": d["scripts"]["theme"],
                   "style_queue": d["styles"]["queue"], "style_theme": d["styles"]["theme"]},
-        "chuky": [[f["ten"], [[p["ten"], p["mac_dinh"], p["bat_buoc"]] for p in f["tham_so"]]]
+        "chu_ky": [[f["ten"], [[p["ten"], p["mac_dinh"], p["bat_buoc"]] for p in f["tham_so"]]]
                   for f in d["chu_ky_ham"]],
         "html": d["html_mask"],
-        "sanit": d["sanit"],
+        "sanitise": d["sanitise"],
     }
 
 
@@ -214,7 +214,7 @@ def lech(a, b):
     """Tập tên mặt có khác nhau. So bằng JSON đã chuẩn hoá để thứ tự khoá không sinh noise."""
     ra = []
     ma, mb = bay_mat(a), bay_mat(b)
-    for ten in ("nap", "hook", "fire", "asset", "chuky", "html", "sanit"):
+    for ten in ("nap", "hook", "fire", "asset", "chu_ky", "html", "sanitise"):
         if json.dumps(ma[ten], sort_keys=True, ensure_ascii=False) != \
            json.dumps(mb[ten], sort_keys=True, ensure_ascii=False):
             ra.append(ten)
@@ -250,7 +250,7 @@ CA_TIEM = [
         "file": "inc/tham-so.php",
         "cu": "function fxb_gia( $so, $ty_le = 1.1 ) {",
         "moi": "function fxb_gia( $so, $ty_le = 1.2 ) {",
-        "cho_doi": "chuky",
+        "cho_doi": "chu_ky",
     },
     {
         "ma": "4-mat-sanitise",
@@ -258,7 +258,7 @@ CA_TIEM = [
         "file": "inc/loc-dau-vao.php",
         "cu": "return esc_html( wp_unslash( $_GET['fxb_tim'] ?? '' ) );",
         "moi": "return wp_unslash( $_GET['fxb_tim'] ?? '' );",
-        "cho_doi": "sanit",
+        "cho_doi": "sanitise",
     },
     {
         "ma": "5-doi-diem-lifecycle",
@@ -334,9 +334,9 @@ def main():
     noise = lech(n1, n2)
     print(f"   moi truong: PHP {n1['moi_truong']['php']} · WP {n1['moi_truong']['wp']} "
           f"· Woo {n1['moi_truong']['woo']} · theme {n1['moi_truong']['theme_slug']}")
-    print(f"   hook cua theme: {len(n1['hook_theme'])} · tong hook dang ky: {n1['hook_tong_so']}")
+    print(f"   hook cua theme: {len(n1['hook_theme'])} · tong hook dang ky: {n1['so_hook']}")
     print(f"   file nap: {len(n1['file_nap_sau_render'])} · chuoi fire: {len(n1['chuoi_fire'])} muc")
-    print(f"   chu ky ham: {len(n1['chu_ky_ham'])} · diem doc superglobal: {len(n1['sanit'])}")
+    print(f"   chu ky ham: {len(n1['chu_ky_ham'])} · diem doc superglobal: {len(n1['sanitise'])}")
     print(f"   HTML sau mask: {len(n1['html_mask'])} ky tu")
     if noise:
         print(f"\n   NOISE_QUA_LON: hai luot khong doi code da lech o mat {noise}")

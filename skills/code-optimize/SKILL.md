@@ -87,7 +87,7 @@ python scripts/code_nodes.py --theme "đường/dẫn/theme" --ra "run/graph.jso
 Node: file · hàm · hook · handle asset. Cạnh có kiểu: `require` · `goi` · `khai_bao` ·
 `dang_ky` · `phat` · `enqueue` · `phu_thuoc` · `template_part`. Mọi thứ không phân giải
 được — hook tên biến, callback ghép chuỗi, require dựng bằng biến — **đếm vào
-`dynamic_unresolved`**, không đoán. Con số đó là thước đo độ tin cậy của chính đồ thị;
+`chua_giai`**, không đoán. Con số đó là thước đo độ tin cậy của chính đồ thị;
 nó khác 0 thì mọi kết luận "không ai gọi" phải đọc kèm nó.
 
 Đặt **cạnh** `quet_chet.py`, không sửa nó: `quet_chet.py` trả lời "cái gì chết", file này

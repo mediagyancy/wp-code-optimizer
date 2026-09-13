@@ -12,8 +12,8 @@ một loại thay đổi: **xoá**. Đem chúng sang phép **biến đổi** th�
 |---|---|---|---|---|---|
 | hook dời file → đổi **thứ tự đăng ký** cùng priority | — | — | — | — | `hook` (thứ tự trong bucket) |
 | `add_action` đổi **priority** | — | — | — | — | `hook` + `html` |
-| hàm tách ra với **giá trị mặc định** khác | — | — | — | — | `chuky` (Reflection) |
-| **mất `esc_html`** quanh `$_GET` khi dời | — | một phần, có điều kiện | — | — | `sanit` (tĩnh) |
+| hàm tách ra với **giá trị mặc định** khác | — | — | — | — | `chu_ky` (Reflection) |
+| **mất `esc_html`** quanh `$_GET` khi dời | — | một phần, có điều kiện | — | — | `sanitise` (tĩnh) |
 | `get_template_part` dời sang **sau `wp_head()`** | — | — | — | — | `asset` + `html` |
 | điều kiện **đảo chiều** canh một `add_filter` | — | — | — | — | `hook` (cạnh biến mất) |
 
@@ -58,12 +58,12 @@ ghi lại để không ai tưởng mặt `fire` phủ cả option.
 Khi viết `code_nodes.py`:
 
 - `([^,)]+?)` **lazy** đứng trước một cái đuôi toàn optional khớp đúng **một ký tự**, nên
-  handle `'fxb-main'` bị bắt thành dấu `'`. Hậu quả: `dynamic_unresolved` phồng lên 2 vì
+  handle `'fxb-main'` bị bắt thành dấu `'`. Hậu quả: `chua_giai` phồng lên 2 vì
   lỗi của chính tool — tức thước đo độ tin cậy của đồ thị bị chính tool làm vô dụng.
 - Đổi sang `[^,()]+` **greedy** thì handle đúng, nhưng tham số `src` là
   `get_template_directory_uri() . '...'` có dấu ngoặc nên char class dừng giữa đường và
   mảng dependency **im lặng** không được đọc — cạnh `phu_thuoc` biến mất, và lần này tool
-  báo `dynamic_unresolved = 0` **trong khi đang thiếu cạnh**. Hướng này nguy hiểm hơn.
+  báo `chua_giai = 0` **trong khi đang thiếu cạnh**. Hướng này nguy hiểm hơn.
 
 Cách đúng là cách repo đã dùng ở `go_ham.py`/`go_css.py`: **cắt theo cân bằng ngoặc** có
 xử lý chuỗi, regex chỉ để tìm điểm mở. Một regex cố bắt cả lời gọi nhiều tham số là một

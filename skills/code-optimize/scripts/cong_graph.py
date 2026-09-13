@@ -50,7 +50,7 @@ def doc_json(p):
 def hook_tinh(g):
     """(hook, priority, callback) từ cạnh `dang_ky` của đồ thị tĩnh."""
     ra = set()
-    for e in g["edges"]:
+    for e in g["canh"]:
         if e["loai"] != "dang_ky":
             continue
         hook = e["tu"].split(":", 1)[1]
@@ -84,11 +84,11 @@ def file_tinh_toi_duoc(g):
     """
     canh = {}
     moi_file = set()
-    for n in g["nodes"]:
+    for n in g["nut"]:
         if n["loai"] == "file":
             moi_file.add(n["duong_dan"])
             canh.setdefault(n["duong_dan"], set())
-    for e in g["edges"]:
+    for e in g["canh"]:
         if e["loai"] in ("require", "template_part"):
             canh.setdefault(e["tu"].split(":", 1)[1], set()).add(e["den"].split(":", 1)[1])
 
@@ -109,7 +109,7 @@ def file_tinh_toi_duoc(g):
 # MẶT 3 — handle asset do theme đăng ký
 # ─────────────────────────────────────────────────────────────────────────────
 def asset_tinh(g):
-    return {e["den"].split(":", 1)[1] for e in g["edges"] if e["loai"] == "enqueue"}
+    return {e["den"].split(":", 1)[1] for e in g["canh"] if e["loai"] == "enqueue"}
 
 
 def asset_runtime(adn):
@@ -167,7 +167,7 @@ def main():
         "asset": at - ar,
     }
     tong_mu = sum(len(v) for v in chi_mu.values())
-    tong_noi_qua = sum(len(v) for v in chi_noi_qua.values())
+    so_noi_qua = sum(len(v) for v in chi_noi_qua.values())
 
     print("=" * 72)
     print("CỔNG GRAPH — giả thuyết tĩnh đối chứng ADN runtime")
@@ -177,7 +177,7 @@ def main():
     print(f"  cạnh hook   tĩnh {len(ht):4d}  runtime {len(hr):4d}")
     print(f"  file nạp    tĩnh {len(ft):4d}  runtime {len(fr):4d}")
     print(f"  handle asset tĩnh {len(at):3d}  runtime {len(ar):4d}")
-    print(f"  dynamic_unresolved mà chính đồ thị tĩnh tự khai: {g['dynamic_unresolved_tong']}")
+    print(f"  chua_giai mà chính đồ thị tĩnh tự khai: {g['so_chua_giai']}")
 
     if tong_mu:
         print("\n" + "-" * 72)
@@ -188,7 +188,7 @@ def main():
             if bo:
                 in_nhom(ten, "tin theo đồ thị tĩnh ở đây là xoá code đang chạy", "!!", bo)
 
-    if tong_noi_qua:
+    if so_noi_qua:
         print("\n" + "-" * 72)
         print("CHIỀU NHẸ HƠN — đồ thị tĩnh NÓI CÓ mà runtime KHÔNG CÓ")
         print("Không chí mạng, nhưng đây là họ lỗi TAT_AM_THAM: nhìn code tưởng tính năng")
@@ -206,12 +206,12 @@ def main():
             "hook_tinh": len(ht), "hook_runtime": len(hr),
             "file_tinh": len(ft), "file_runtime": len(fr),
             "asset_tinh": len(at), "asset_runtime": len(ar),
-            "dynamic_unresolved": g["dynamic_unresolved_tong"],
+            "chua_giai": g["so_chua_giai"],
         },
         "chi_runtime_co": {k: de_ghi(v) for k, v in chi_mu.items()},
         "chi_tinh_co": {k: de_ghi(v) for k, v in chi_noi_qua.items()},
-        "tong_vung_mu": tong_mu,
-        "tong_noi_qua": tong_noi_qua,
+        "so_vung_mu": tong_mu,
+        "so_noi_qua": so_noi_qua,
     }
     if a.ra:
         os.makedirs(os.path.dirname(os.path.abspath(a.ra)), exist_ok=True)

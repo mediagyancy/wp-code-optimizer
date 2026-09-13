@@ -355,7 +355,7 @@ echo wp_json_encode(
 		'file_nap_sau_render'   => $nap_sau_render,
 		/* 2 — priority + thứ tự trong bucket */
 		'hook_theme'            => $hook_theme,
-		'hook_tong_so'          => count( $hook_tat_ca ),
+		'so_hook'          => count( $hook_tat_ca ),
 		/* 3 — THỨ TỰ FIRE THẬT */
 		'chuoi_fire'            => $GLOBALS['adn_chuoi_fire'],
 		/* 4 — registry, giữ thứ tự */
@@ -365,7 +365,7 @@ echo wp_json_encode(
 		'chu_ky_ham'            => adn_chu_ky_ham( $theme_dir ),
 		/* HTML thô — mask làm ở phía Python, có lý do, trong version control */
 		'html_tho'              => $html,
-		'html_do_dai'           => strlen( $html ),
+		'do_dai_html'           => strlen( $html ),
 	),
 	JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
 );

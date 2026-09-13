@@ -45,7 +45,7 @@ thì không gian được bằng việc xoá guard hay xoá chú thích. Phát b
 | B2 | **Không có hook đăng ký trong `__construct`** | điểm hội tụ **duy nhất** của cả hệ sinh thái (10up, Gary Jones, Bright Nucleus, Inpsyde modularity — bốn nguồn độc lập, cùng tên method `run()`): khởi tạo object là hook đã nối ngay, nên không thể assert trạng thái "trước"; vượt quá điểm này thì **không có đồng thuận** |
 | B3 | Không có file trong `inc/` nằm trên đĩa mà loader không `require` | họ lỗi `TAT_AM_THAM`: tính năng không chạy, `php -l` sạch, không một dòng lỗi, guard `function_exists` làm nó suy biến êm — `doi_chung_live.py --loader` đã đo được từ v0.4.0 |
 | B4 | Mỗi endpoint `wp_ajax_nopriv_*` / `rest_api_init` / `admin_post_nopriv_*` có chủ: biết ai gọi, từ giao diện nào | endpoint công khai sống sót sau khi giao diện chết là **bề mặt tấn công**, không chỉ là code thừa |
-| B5 | `dynamic_unresolved` của đồ thị tĩnh được **in ra** cạnh mọi kết luận "không ai gọi" | đồ thị sai mà tự tin tệ hơn không có đồ thị |
+| B5 | `chua_giai` của đồ thị tĩnh được **in ra** cạnh mọi kết luận "không ai gọi" | đồ thị sai mà tự tin tệ hơn không có đồ thị |
 | B6 | Không `posts_per_page => -1`; không `post__not_in`; `no_found_rows => true` khi không phân trang; không ghi DB ở trang frontend | luật cứng của 10up, có lý do nghiệp vụ rõ (truy vấn không biên trên bảng lớn) — ghi nguồn là 10up, không ghi là "chuẩn WordPress" |
 | B7 | Không Heredoc/Nowdoc trong template | phá late escaping (10up); và phá luôn phép cắt theo cân bằng ngoặc của chính bộ công cụ này |
 | B8 | Đổi theme mặc định hoặc tắt functionality plugin **không** gây lỗi | luật decoupling của 10up: "every piece of code should be decoupled and use standard WordPress paradigms (hooks)" |

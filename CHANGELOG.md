@@ -99,6 +99,52 @@ ngỏ ticket PSR-4 autoloader nhiều năm). Chỉ số duy nhất được phé
 Skill này **không hứa "tinh gọn"**. Thước đếm dòng thưởng cho việc xoá thứ đắt nhất —
 chú thích kể lại ca hỏng, vòng giữ thứ tự nạp, guard `ABSPATH`.
 
+### Luật đặt tên thành luật CỨNG — `CLAUDE.md` §1, chốt `tests/kiem_ten.py`
+
+Kiểm kê 13/09/2026: repo nói **hai ngôn ngữ, ba quy ước**. `wp-delivery` tiếng Anh
+(`STATIC_CHECKS_PASSED`, `--write-baseline`, key `pass`/`fail`/`kind`); cleaner và lane mới
+tiếng Việt; và ngay trong code mới cũng lẫn — `dynamic_unresolved` cạnh `phien_ban`, đếm thì
+lúc `so_file` lúc `hook_tong_so` lúc `tong_vung_mu`, mặt Tầng 5 thì `chuky` không gạch,
+`sanit` cụt.
+
+Học từ bảng tham chiếu Liquid của Haravan: **một namespace mỗi object, tên là danh từ, tiền
+tố/hậu tố có nghĩa cố định, và một bảng tra được bằng mắt cho MỌI tên**. Áp thành luật ở
+`CLAUDE.md` §1 (tiếng Việt snake_case · đếm `so_` tổng `tong_` · lồng theo object · boolean
+`co_`/`da_`/`la_` · mã lý do là mệnh đề về trạng thái · không `--force`) và bảng
+`docs/BANG-THAM-CHIEU.md` — mỗi mục có mô tả, ví dụ, và ghi rõ **có thứ tự** hay không.
+
+`tests/kiem_ten.py` quét 243 tên phát ra ngoài (key · cờ CLI · mã lý do), tự hiệu chuẩn, và
+đòi bảng phủ hết lane mới. Ba lỗ tìm ra trong chính phép quét nhờ ca hiệu chuẩn: `to` trong
+blocklist tiếng Anh va với âm tiết Việt (`--tien-to`); `'required' => false` trong **comment**
+giải thích regex bị đọc như key; và mã lý do in trong chuỗi dài (`print("KHONG_KIEM_DUOC: …")`)
+**chưa bao giờ được quét** vì regex đòi cả chuỗi chỉ là mã.
+
+Nợ cũ: `wp-delivery` **34 tên tiếng Anh** khoanh trong `tests/ten-baseline.json`, ratchet —
+không được tăng, giảm thì phải `--cap-nhat`.
+
+### Đổi tên — breaking change theo luật mới (schema chưa từng phát hành, cùng bản 0.5.0)
+
+| Cũ | Mới | Ở đâu |
+|---|---|---|
+| `nodes` · `edges` | `nut` · `canh` | `graph.json` |
+| `dynamic_unresolved` · `dynamic_unresolved_tong` | `chua_giai` · `so_chua_giai` | `graph.json`, `graph-trust.json` |
+| `hook_tong_so` | `so_hook` | `adn` |
+| `html_do_dai` | `do_dai_html` | `adn` |
+| `tong_vung_mu` · `tong_noi_qua` | `so_vung_mu` · `so_noi_qua` | `graph-trust.json` |
+| mặt `chuky` · `sanit` | `chu_ky` · `sanitise` | Tầng 5 |
+| `PROBE_VERSION` | `PHIEN_BAN_PROBE` | `probe.js` |
+
+### Thêm — `doi_ten.py`: đổi tên chỉ qua đây, không `sed`
+
+Replace thẳng hỏng **im lặng** theo ba cách: khớp chuỗi con (`so` → đụng `so_file`), va chạm
+(tên mới đã tồn tại với nghĩa khác), bỏ sót (chỗ dùng trong file không mở). Cách "A → C độc
+nhất → test → C → B" bắt được va chạm nhưng **không** bắt bỏ sót và nhân đôi số lần sửa.
+`doi_ten.py`: ranh giới từ (hoặc `--chi-trong-nhay` cho key JSON) · `đếm(B)==0` trước ·
+`đếm(A)==0` và `đếm(B)==n` sau · mặc định thử · cây git phải sạch hoặc có `--backup` ·
+`--kiem` chạy test, đỏ thì **phục hồi từng byte từ snapshot** — không dùng `git checkout`
+vì trên Windows nó trả CRLF cho file LF (đo được, đúng cạm bẫy `checkout.css` 1.049 byte).
+19 khẳng định, mỗi chốt một ca hỏng một ca đúng.
+
 ### Thêm — skill `wp-preview-builder`
 
 Gom kinh nghiệm dựng và nghiệm thu bản xem trước thành luật, mỗi luật kèm ca hỏng đã trả

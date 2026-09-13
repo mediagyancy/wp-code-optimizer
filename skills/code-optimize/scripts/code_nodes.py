@@ -24,7 +24,7 @@ File này giữ đồ thị lại, ở mức chi tiết hơn: node là file · h
 asset, và cạnh có KIỂU. Hai tool trả lời hai câu khác nhau, nên để cạnh nhau chứ
 không gộp: `quet_chet.py` hỏi "cái gì chết", file này hỏi "cái gì nối với cái gì".
 
-Mọi thứ không phân giải được thì ĐẾM VÀO `dynamic_unresolved`, không đoán. Con số
+Mọi thứ không phân giải được thì ĐẾM VÀO `chua_giai`, không đoán. Con số
 đó là thước đo độ tin cậy của chính đồ thị: nó khác 0 nghĩa là có cạnh bị thiếu, và
 mọi kết luận kiểu "không ai gọi" phải đọc kèm con số ấy.
 
@@ -101,12 +101,12 @@ RE_PHAT = re.compile(
 #
 #   · `([^,)]+?)` lazy đứng trước cái đuôi toàn optional khớp đúng MỘT ký tự rồi dừng,
 #     nên handle `'fxb-main'` bị bắt thành dấu `'`. Hậu quả không phải một lỗi ồn ào
-#     mà là `dynamic_unresolved` phồng lên 2 vì lỗi của chính tool — tức con số đo độ
+#     mà là `chua_giai` phồng lên 2 vì lỗi của chính tool — tức con số đo độ
 #     tin cậy của đồ thị bị chính tool làm cho vô dụng.
 #   · Đổi sang `[^,()]+` greedy thì handle đúng, nhưng tham số `src` là
 #     `get_template_directory_uri() . '...'` có dấu ngoặc, nên char class dừng giữa
 #     tham số và mảng dependency không bao giờ được đọc — cạnh `phu_thuoc` im lặng
-#     biến mất. Lần này tool không báo mù ở đâu cả: nó báo `dynamic_unresolved = 0`
+#     biến mất. Lần này tool không báo mù ở đâu cả: nó báo `chua_giai = 0`
 #     trong khi đang thiếu cạnh. Đó là hướng nguy hiểm.
 #
 # Cách đúng là cách repo này đã dùng ở `go_ham.py` và `go_css.py`: CẮT THEO CÂN BẰNG
@@ -360,40 +360,40 @@ def dung(goc_theme):
     return {
         "phien_ban": 1,
         "theme": os.path.basename(goc_theme.rstrip("/\\")),
-        "nodes": [nodes[k] for k in sorted(nodes)],
-        "edges": sorted(edges, key=lambda e: (e["loai"], e["tu"], e["den"], e["dong"] or 0)),
-        "dynamic_unresolved": chua_giai,
-        "dynamic_unresolved_tong": tong_chua_giai,
+        "nut": [nodes[k] for k in sorted(nodes)],
+        "canh": sorted(edges, key=lambda e: (e["loai"], e["tu"], e["den"], e["dong"] or 0)),
+        "chua_giai": chua_giai,
+        "so_chua_giai": tong_chua_giai,
     }
 
 
 def in_ra(g):
     theo_loai = {}
-    for n in g["nodes"]:
+    for n in g["nut"]:
         theo_loai[n["loai"]] = theo_loai.get(n["loai"], 0) + 1
     canh_loai = {}
-    for e in g["edges"]:
+    for e in g["canh"]:
         canh_loai[e["loai"]] = canh_loai.get(e["loai"], 0) + 1
 
     print("=" * 72)
     print(f"CODE NODES — giả thuyết tĩnh cho `{g['theme']}`")
     print("=" * 72)
-    print(f"  node: {len(g['nodes'])}   " +
+    print(f"  node: {len(g['nut'])}   " +
           " · ".join(f"{k} {v}" for k, v in sorted(theo_loai.items())))
-    print(f"  cạnh: {len(g['edges'])}   " +
+    print(f"  cạnh: {len(g['canh'])}   " +
           " · ".join(f"{k} {v}" for k, v in sorted(canh_loai.items())))
 
-    t = g["dynamic_unresolved_tong"]
+    t = g["so_chua_giai"]
     print()
     if t == 0:
-        print("  dynamic_unresolved = 0")
+        print("  chua_giai = 0")
         print("  Không có cạnh nào bị thiếu vì lý do phân tích tĩnh. Nhưng ĐỪNG đọc con số")
         print("  này thành 'đồ thị đúng': nó chỉ nói 'không có chỗ nào tôi BIẾT là mình mù'.")
         print("  Chốt duy nhất nói được đồ thị có đúng hay không là cong_graph.py, đối chứng")
         print("  với ADN chụp từ WordPress đang chạy.")
     else:
-        print(f"  !! dynamic_unresolved = {t} — mỗi mục là một CẠNH BỊ THIẾU")
-        for k, v in g["dynamic_unresolved"].items():
+        print(f"  !! chua_giai = {t} — mỗi mục là một CẠNH BỊ THIẾU")
+        for k, v in g["chua_giai"].items():
             if not v:
                 continue
             print(f"     {k}: {len(v)}")
